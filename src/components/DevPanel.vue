@@ -1,12 +1,41 @@
 <template>
-  <div v-if="isDev" class="dev-panel">
-    <div class="dev-panel-header">Development Panel</div>
-    <div class="dev-panel-content">
-      <div class="dev-panel-row">
-        <label for="mockData">Mock Data:</label>
-        <input id="mockData" type="checkbox" :checked="useMockData" @change="toggleMockData" />
+  <div
+    v-if="isDev"
+    class="fixed top-3 left-3 w-64 bg-opacity-90 bg-gray-800 text-white rounded-lg font-mono text-sm z-100 pointer-events-auto shadow-lg border border-white border-opacity-10"
+  >
+    <div
+      class="px-3 py-2 bg-gray-700 bg-opacity-80 rounded-t-lg font-bold cursor-pointer border-b border-white border-opacity-10"
+    >
+      Development Panel
+    </div>
+    <div class="p-3">
+      <div class="flex justify-between items-center mb-2">
+        <p>Connection</p>
+        <select class="bg-gray-700 rounded px-1 text-sm" @input="updateConnectionState">
+          <option value="connected">Connected</option>
+          <option value="authenticating">Authenticating</option>
+          <option value="disconnected">Disconnected</option>
+        </select>
       </div>
-      <div class="stats-info">
+      <div class="flex justify-between items-center mb-2">
+        <p>Step data</p>
+        <div class="space-x-2">
+          <button class="bg-gray-700 px-2 py-1 rounded text-xs" @click="startMockStepData">
+            Start
+          </button>
+          <button class="bg-gray-700 px-2 py-1 rounded text-xs" @click="stopMockStepData">
+            Stop
+          </button>
+        </div>
+      </div>
+      <div class="flex justify-between items-center mb-2">
+        <p>Send Events</p>
+        <select v-model="eventToFire" class="bg-gray-700 rounded px-1 text-sm">
+          <option value="brb">Be right back</option>
+        </select>
+        <button class="bg-gray-700 px-2 py-1 rounded text-xs" @click="fireEvent">Fire</button>
+      </div>
+      <div class="border-t border-white border-opacity-10 pt-2 mt-2 text-xs leading-relaxed">
         <div>
           Connection: <span :class="connectionClass">{{ connectionState }}</span>
         </div>
@@ -18,12 +47,29 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useHomeAssistant } from '../composables/useHomeAssistant';
+import { onKeyStroke } from '@vueuse/core';
 
-const { steps, speed, connectionState, useMockData, toggleMockData } = useHomeAssistant();
+const {
+  steps,
+  speed,
+  connectionState,
+  brbEnabled,
+  startMockStepData,
+  stopMockStepData,
+  setConnectionState,
+  setBrbEnabled,
+} = useHomeAssistant(true);
 
-const isDev = computed(() => import.meta.env.DEV);
+const isDevFromEnv = computed(() => import.meta.env.DEV);
+const isDevEnabledInternal = ref(false);
+
+const isDev = computed(() => isDevFromEnv.value && isDevEnabledInternal.value);
+
+onKeyStroke('u', () => {
+  isDevEnabledInternal.value = !isDevEnabledInternal.value;
+});
 
 const connectionClass = computed(() => {
   return (
@@ -34,68 +80,17 @@ const connectionClass = computed(() => {
     }[connectionState.value] || 'text-gray-500'
   );
 });
+
+const updateConnectionState = e => {
+  setConnectionState(e.target.value);
+};
+
+const eventToFire = ref('brb');
+
+const fireEvent = () => {
+  switch (eventToFire.value) {
+    case 'brb':
+      setBrbEnabled(!brbEnabled.value);
+  }
+};
 </script>
-
-<style scoped>
-.dev-panel {
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  width: 250px;
-  background-color: rgba(30, 30, 30, 0.9);
-  color: white;
-  border-radius: 8px;
-  font-family: monospace;
-  font-size: 14px;
-  z-index: 9999;
-  pointer-events: auto;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.dev-panel-header {
-  padding: 8px 12px;
-  background-color: rgba(50, 50, 50, 0.8);
-  border-top-left-radius: 8px;
-  border-top-right-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.dev-panel-content {
-  padding: 10px;
-}
-
-.dev-panel-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.stats-info {
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 8px;
-  margin-top: 8px;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.text-red-500 {
-  color: #f87171;
-}
-
-.text-yellow-500 {
-  color: #fbbf24;
-}
-
-.text-green-500 {
-  color: #4ade80;
-}
-
-input[type='checkbox'] {
-  transform: scale(1.2);
-  cursor: pointer;
-}
-</style>

@@ -14,6 +14,15 @@
 
     <!-- Main overlay content -->
     <StepsDisplay />
+    <BeRightBack
+      :image-urls="[
+        'rain/janiswow.png',
+        'rain/janiswhy.png',
+        'rain/janisapproved.png',
+        'rain/janisreally.png',
+        'rain/mortyxmas.png',
+      ]"
+    />
   </div>
 </template>
 
@@ -22,6 +31,7 @@ import { computed } from 'vue';
 import StepsDisplay from './components/StepsDisplay.vue';
 import DevPanel from './components/DevPanel.vue';
 import { useHomeAssistant } from './composables/useHomeAssistant';
+import BeRightBack from './components/BeRightBack.vue';
 
 const { connectionState } = useHomeAssistant();
 

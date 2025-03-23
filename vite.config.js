@@ -1,12 +1,15 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
+import tailwindcss from '@tailwindcss/vite'
+
 
 export default defineConfig(() => {
   const devHost = process.env.VITE_HA_DEV_HOST;
   const port = process.env.VITE_HA_PORT;
 
   return {
-    plugins: [vue()],
+    plugins: [vue(), tailwindcss()],
+    base: './',
     server: {
       proxy: {
         '/api': {

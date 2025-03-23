@@ -1,10 +1,8 @@
-import { ref, onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted, readonly, ref } from 'vue';
 
 const steps = ref(0);
 const speed = ref(0);
-const isActive = ref(false);
 const connectionState = ref('disconnected');
-const useMockData = ref(false);
 
 let socket = null;
 let msgId = 1;
@@ -13,15 +11,16 @@ const token = import.meta.env.VITE_HA_TOKEN;
 const devHost = import.meta.env.VITE_HA_DEV_HOST;
 const port = import.meta.env.VITE_HA_PORT;
 
+const brbEnabled = ref(false);
+
 // Generate mock data for development
-const startMockData = () => {
+const startMockStepData = () => {
   if (mockDataInterval) clearInterval(mockDataInterval);
 
   console.log('Starting mock data generation');
   // Initial values
   steps.value = 1250;
   speed.value = 3.5;
-  isActive.value = true;
   connectionState.value = 'connected';
 
   mockDataInterval = setInterval(() => {
@@ -36,14 +35,16 @@ const startMockData = () => {
 };
 
 // Stop mock data generation
-const stopMockData = () => {
+const stopMockStepData = () => {
   if (mockDataInterval) {
     clearInterval(mockDataInterval);
     mockDataInterval = null;
     console.log('Stopped mock data generation');
   }
 };
+
 const connectToHA = () => {
+  if (socket) return;
   // Use different URLs for development and production
   const isDev = import.meta.env.DEV;
   const host = isDev ? devHost : window.location.hostname;
@@ -76,17 +77,30 @@ const connectToHA = () => {
 
       // Subscribe to state changes
       subscribeToEntities();
-    } else if (message.type === 'event' && message.event && message.event.data) {
-      // Handle state changes
-      const entityData = message.event.data.new_state;
-      if (!entityData) return;
+    }
+    // Initial values
+    else if (message.type === 'event' && message.event && message.event.a) {
+      const eventData = message.event.a;
+      const stepsData = eventData['sensor.ksmb_v1_7aed_current_step_count'].s;
+      if (stepsData !== 'unavailable') {
+        steps.value = stepsData;
+      }
 
-      if (entityData.entity_id === 'sensor.ksmb_v1_7aed_current_step_count') {
-        const stepCount = parseInt(entityData.state);
-        steps.value = stepCount;
-        isActive.value = stepCount > 0;
-      } else if (entityData.entity_id === 'number.ksmb_v1_7aed_speed_level') {
-        speed.value = entityData.state;
+      const speedData = eventData['number.ksmb_v1_7aed_speed_level'].s;
+      if (speedData !== 'unavailable') {
+        speed.value = speedData;
+      }
+
+      brbEnabled.value = eventData['input_boolean.janis_vco_brb'].s === 'on';
+    } else if (message.type === 'event' && message.event && message.event.c) {
+      const eventData = message.event.c;
+
+      if (eventData['sensor.ksmb_v1_7aed_current_step_count']) {
+        steps.value = parseInt(eventData['sensor.ksmb_v1_7aed_current_step_count']['+']['s']);
+      } else if (eventData['number.ksmb_v1_7aed_speed_level']) {
+        speed.value = eventData['number.ksmb_v1_7aed_speed_level']['+']['s'];
+      } else if (eventData['input_boolean.janis_vco_brb']) {
+        brbEnabled.value = eventData['input_boolean.janis_vco_brb']['+']['s'] === 'on';
       }
     }
   };
@@ -106,7 +120,11 @@ const connectToHA = () => {
 
 // Subscribe to entity state changes
 const subscribeToEntities = () => {
-  const entities = ['sensor.ksmb_v1_7aed_current_step_count', 'number.ksmb_v1_7aed_speed_level'];
+  const entities = [
+    'sensor.ksmb_v1_7aed_current_step_count',
+    'number.ksmb_v1_7aed_speed_level',
+    'input_boolean.janis_vco_brb',
+  ];
 
   socket.send(
     JSON.stringify({
@@ -117,42 +135,34 @@ const subscribeToEntities = () => {
   );
 };
 
-// Toggle mock data on/off (for development)
-const toggleMockData = () => {
-  useMockData.value = !useMockData.value;
-  if (useMockData.value) {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.close();
-    }
-    startMockData();
-  } else {
-    stopMockData();
-    connectToHA();
-  }
+const setConnectionState = state => {
+  connectionState.value = state;
 };
 
-export function useHomeAssistant() {
+const setBrbEnabled = enabled => {
+  brbEnabled.value = enabled;
+};
+
+export function useHomeAssistant(isDevPanel = false) {
   onMounted(() => {
-    if (useMockData.value) {
-      startMockData();
-    } else {
-      connectToHA();
-    }
+    connectToHA();
   });
 
   onUnmounted(() => {
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.close();
     }
-    stopMockData();
+    stopMockStepData();
   });
 
   return {
-    steps,
-    speed,
-    isActive,
-    connectionState,
-    useMockData,
-    toggleMockData,
+    steps: readonly(steps),
+    speed: readonly(speed),
+    connectionState: readonly(connectionState),
+    brbEnabled: readonly(brbEnabled),
+    startMockStepData: isDevPanel ? startMockStepData : undefined,
+    stopMockStepData: isDevPanel ? stopMockStepData : undefined,
+    setConnectionState: isDevPanel ? setConnectionState : undefined,
+    setBrbEnabled: isDevPanel ? setBrbEnabled : undefined,
   };
 }

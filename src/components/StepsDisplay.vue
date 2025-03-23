@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isActive" class="overlay-container">
+  <div v-if="steps !== 0 && speed !== 0" class="overlay-container">
     <div class="stats-display">
       <div class="stats-row">
         <span class="stats-value">{{ steps }}</span>
@@ -16,7 +16,7 @@
 <script setup>
 import { useHomeAssistant } from '../composables/useHomeAssistant';
 
-const { steps, speed, isActive } = useHomeAssistant();
+const { steps, speed } = useHomeAssistant();
 </script>
 
 <style scoped>

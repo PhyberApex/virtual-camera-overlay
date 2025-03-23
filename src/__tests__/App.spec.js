@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import App from '../App.vue';
-// import StepsDisplay from '../components/StepsDisplay.vue';
-// import DevPanel from '../components/DevPanel.vue';
+import StepsDisplay from '../components/StepsDisplay.vue';
+import DevPanel from '../components/DevPanel.vue';
 
 // Mock the components
 vi.mock('../components/StepsDisplay.vue', () => ({
@@ -33,8 +33,8 @@ describe('App', () => {
     expect(wrapper.find('.dev-panel-mock').exists()).toBe(true);
   });
 
-  // it('does not show connection indicator when connected', () => {
-  //   const wrapper = mount(App);
-  //   expect(wrapper.find('.fixed').exists()).toBe(false);
-  // });
+  it('does not show connection indicator when connected', () => {
+    const wrapper = mount(App);
+    expect(wrapper.find('.fixed').exists()).toBe(false);
+  });
 });
