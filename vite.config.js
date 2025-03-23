@@ -1,11 +1,10 @@
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
+import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue';
 
-// https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
-  const devHost = process.env.VITE_HA_DEV_HOST || '192.168.0.13';
-  const port = process.env.VITE_HA_PORT || '8123';
-  
+export default defineConfig(() => {
+  const devHost = process.env.VITE_HA_DEV_HOST;
+  const port = process.env.VITE_HA_PORT;
+
   return {
     plugins: [vue()],
     server: {
@@ -13,9 +12,19 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: `http://${devHost}:${port}`,
           changeOrigin: true,
-          secure: false
-        }
-      }
-    }
+          secure: false,
+        },
+      },
+    },
+    test: {
+      globals: true,
+      environment: 'jsdom',
+      deps: {
+        inline: ['vue'],
+      },
+      coverage: {
+        reporter: ['text', 'json', 'html'],
+      },
+    },
   };
-})
+});

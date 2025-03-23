@@ -27,17 +27,20 @@ This application connects to a Home Assistant instance via WebSockets and displa
 ### Installation
 
 1. Clone this repository:
+
    ```bash
    git clone https://github.com/yourusername/fitness-tracker-overlay.git
    cd fitness-tracker-overlay
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Configure environment variables:
+
    - Copy the example environment file:
      ```bash
      cp .env.example .env
@@ -45,11 +48,12 @@ This application connects to a Home Assistant instance via WebSockets and displa
    - Edit `.env` and add your Home Assistant access token and other configuration:
      ```
      VITE_HA_TOKEN=your_long_lived_access_token_here
-     VITE_HA_DEV_HOST=your_ha_host
-     VITE_HA_PORT=your_ha_port
+     VITE_HA_DEV_HOST=192.168.0.13
+     VITE_HA_PORT=8123
      ```
 
 4. Start the development server:
+
    ```bash
    npm run dev
    ```
@@ -65,6 +69,7 @@ This application connects to a Home Assistant instance via WebSockets and displa
 2. For local development:
    - Use the URL provided by the Vite dev server (typically http://localhost:5173/)
 3. For production:
+
    - Host the built files on a web server and use that URL
    - Or use the "Local File" option and point to the index.html in your dist folder
 
@@ -73,31 +78,34 @@ This application connects to a Home Assistant instance via WebSockets and displa
 6. Remove any custom CSS that OBS might add by default
 
 **Tip**: If you're still seeing a background or the overlay isn't transparent, add this in the Custom CSS field in OBS:
+
 ```css
-body { background-color: rgba(0, 0, 0, 0) !important; margin: 0px auto; overflow: hidden; }
+body {
+  background-color: rgba(0, 0, 0, 0) !important;
+  margin: 0px auto;
+  overflow: hidden;
+}
 ```
 
 ## Configuration
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `VITE_HA_TOKEN` | Home Assistant long-lived access token | - |
-| `VITE_HA_DEV_HOST` | Host IP/domain for development | 192.168.0.13 |
-| `VITE_HA_PORT` | Port for Home Assistant | 8123 |
-| `VITE_USE_MOCK_DATA` | Enable mock data generation for development | false |
+| Variable           | Description                            | Default      |
+| ------------------ | -------------------------------------- | ------------ |
+| `VITE_HA_TOKEN`    | Home Assistant long-lived access token | -            |
+| `VITE_HA_DEV_HOST` | Host IP/domain for development         | 192.168.0.13 |
+| `VITE_HA_PORT`     | Port for Home Assistant                | 8123         |
 
 ### Development Mode
 
 When in development mode (`npm run dev`), you can:
 
-1. **Use Mock Data**: Set `VITE_USE_MOCK_DATA=true` in your `.env` file to generate simulated fitness data without connecting to Home Assistant.
+**Development Panel**: A control panel will appear in the top-left corner of the screen during development. It allows you to:
 
-2. **Development Panel**: A control panel will appear in the top-left corner of the screen during development. It allows you to:
-   - Toggle mock data on/off
-   - View the current connection status
-   - Monitor the current steps and speed values
+- Toggle mock data on/off
+- View the current connection status
+- Monitor the current steps and speed values
 
 This makes it easy to test and develop the overlay without needing a real fitness device or Home Assistant connection.
 
