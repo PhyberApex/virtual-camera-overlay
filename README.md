@@ -1,4 +1,4 @@
-# Fitness Tracker OBS Overlay
+# Virtual Camera Overlay
 
 A Vue.js-based overlay for displaying fitness tracking data from Home Assistant in OBS Studio.
 
