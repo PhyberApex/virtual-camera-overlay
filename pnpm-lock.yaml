@@ -13,7 +13,7 @@ specifiers:
   eslint-plugin-vue: ^10.0.0
   globals: ^16.0.0
   gsap: ^3.12.7
-  husky: ^8.0.0
+  husky: ^9.0.0
   jsdom: ^26.0.0
   lint-staged: ^15.5.0
   prettier: ^3.5.3
@@ -39,7 +39,7 @@ devDependencies:
   eslint-config-prettier: 10.1.1_eslint@9.23.0
   eslint-plugin-vue: 10.0.0_fduyk3j5atrcbjtvvvvhsv74bq
   globals: 16.0.0
-  husky: 8.0.3
+  husky: 9.1.7
   jsdom: 26.0.0
   lint-staged: 15.5.0
   prettier: 3.5.3
@@ -1938,9 +1938,9 @@ packages:
     engines: {node: '>=16.17.0'}
     dev: true
 
-  /husky/8.0.3:
-    resolution: {integrity: sha512-+dQSyqPh4x1hlO1swXBiNb2HzTDN1I2IGLQx1GrBuiqFJfoMrnZWwVmatvSiO+Iz8fBUnf+lekwNo4c2LlXItg==}
-    engines: {node: '>=14'}
+  /husky/9.1.7:
+    resolution: {integrity: sha512-5gs5ytaNjBrh5Ow3zrvdUUY+0VxIuWVL4i9irt6friV+BqdCfmV11CQTWMiBYWHbXhco+J1kHfTOUkePhCDvMA==}
+    engines: {node: '>=18'}
     hasBin: true
     dev: true
 
