@@ -1,40 +1,32 @@
-import { describe, it, expect, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { shallowMount } from '@vue/test-utils';
 import App from '../App.vue';
-import StepsDisplay from '../components/StepsDisplay.vue';
-import DevPanel from '../components/DevPanel.vue';
+import { nextTick, ref } from 'vue';
 
-// Mock the components
-vi.mock('../components/StepsDisplay.vue', () => ({
-  default: {
-    name: 'StepsDisplay',
-    template: '<div class="steps-display-mock"></div>',
-  },
-}));
-
-vi.mock('../components/DevPanel.vue', () => ({
-  default: {
-    name: 'DevPanel',
-    template: '<div class="dev-panel-mock"></div>',
-  },
-}));
+const connectionState = ref('disconnected')
 
 // Mock the homeAssistant composable
-vi.mock('./composables/useHomeAssistant', () => ({
+vi.mock('../composables/useHomeAssistant', () => ({
   useHomeAssistant: () => ({
-    connectionState: { value: 'connected' },
+    connectionState,
   }),
 }));
 
 describe('App', () => {
-  it('renders correctly', () => {
-    const wrapper = mount(App);
-    expect(wrapper.find('.steps-display-mock').exists()).toBe(true);
-    expect(wrapper.find('.dev-panel-mock').exists()).toBe(true);
+  beforeEach(() => {
+    connectionState.value = 'disconnected';
   });
 
-  it('does not show connection indicator when connected', () => {
-    const wrapper = mount(App);
+  it('renders correctly', () => {
+    const wrapper = shallowMount(App);
+    expect(wrapper.isVisible()).toBe(true);
+    expect(wrapper.find('.fixed').exists()).toBe(true);
+  });
+
+  it('does not show connection indicator when connected', async () => {
+    const wrapper = shallowMount(App);
+    connectionState.value = 'connected';
+    await nextTick()
     expect(wrapper.find('.fixed').exists()).toBe(false);
   });
 });

@@ -43,26 +43,34 @@ describe('useHomeAssistant', () => {
   it('should initialize with default values', () => {
     expect(homeAssistant.steps.value).toBe(0);
     expect(homeAssistant.speed.value).toBe(0);
-    expect(homeAssistant.isActive.value).toBe(false);
     expect(homeAssistant.connectionState.value).toBe('disconnected');
-    expect(homeAssistant.useMockData.value).toBe(false);
+    expect(homeAssistant.brbEnabled.value).toBe(false);
   });
 
-  it('should generate mock data when enabled', () => {
-    homeAssistant.toggleMockData();
+  it('hides mock functions on default', () => {
+    expect(homeAssistant.startMockStepData).toBe(undefined);
+    expect(homeAssistant.stopMockStepData).toBe(undefined);
+    expect(homeAssistant.setConnectionState).toBe(undefined);
+    expect(homeAssistant.setBrbEnabled).toBe(undefined);
+  });
+
+  it('returns mock functions if called from dev panel', () => {
+    homeAssistant = useHomeAssistant(true);
+    expect(typeof homeAssistant.startMockStepData).toBe('function');
+    expect(typeof homeAssistant.stopMockStepData).toBe('function');
+    expect(typeof homeAssistant.setConnectionState).toBe('function');
+    expect(typeof homeAssistant.setBrbEnabled).toBe('function');
+  });
+
+
+  it('should generate mock data when started', () => {
+    homeAssistant = useHomeAssistant(true);
+    homeAssistant.startMockStepData();
     // Wait for the first interval to execute
     vi.advanceTimersByTime(1000);
 
     // Mock data should have updated the values
     expect(homeAssistant.steps.value).toBeGreaterThan(0);
     expect(homeAssistant.speed.value).toBeGreaterThan(0);
-    expect(homeAssistant.isActive.value).toBe(true);
-    expect(homeAssistant.connectionState.value).toBe('connected');
-  });
-
-  it('should toggle mock data correctly', () => {
-    const initialMockState = homeAssistant.useMockData.value;
-    homeAssistant.toggleMockData();
-    expect(homeAssistant.useMockData.value).toBe(!initialMockState);
   });
 });

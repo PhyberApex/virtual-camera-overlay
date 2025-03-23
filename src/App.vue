@@ -30,8 +30,8 @@
 import { computed } from 'vue';
 import StepsDisplay from './components/StepsDisplay.vue';
 import DevPanel from './components/DevPanel.vue';
-import { useHomeAssistant } from './composables/useHomeAssistant';
 import BeRightBack from './components/BeRightBack.vue';
+import { useHomeAssistant } from './composables/useHomeAssistant';
 
 const { connectionState } = useHomeAssistant();
 
