@@ -1,6 +1,5 @@
 ![CI](https://github.com/PhyberApex/virtual-camera-overlay/actions/workflows/ci.yml/badge.svg)
 
-
 # Virtual Camera Overlay
 
 A Vue.js-based overlay for displaying fitness tracking data from Home Assistant in OBS Studio.
