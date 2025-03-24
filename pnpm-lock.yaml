@@ -30,9 +30,9 @@ dependencies:
 
 devDependencies:
   '@eslint/js': 9.23.0
-  '@tailwindcss/vite': 4.0.15_vite@6.2.2
+  '@tailwindcss/vite': 4.0.15_vite@6.2.3
   '@testing-library/vue': 8.1.0_vue@3.5.13
-  '@vitejs/plugin-vue': 5.2.3_vite@6.2.2+vue@3.5.13
+  '@vitejs/plugin-vue': 5.2.3_vite@6.2.3+vue@3.5.13
   '@vue/eslint-config-prettier': 10.2.0_m4w6v2ieebkkjklr6b2whto3ou
   '@vue/test-utils': 2.4.6
   eslint: 9.23.0
@@ -44,7 +44,7 @@ devDependencies:
   lint-staged: 15.5.0
   prettier: 3.5.3
   tailwindcss: 4.0.15
-  vite: 6.2.2
+  vite: 6.2.3
   vitest: 3.0.9_jsdom@26.0.0
   vue-eslint-parser: 10.1.1_eslint@9.23.0
 
@@ -782,7 +782,7 @@ packages:
       '@tailwindcss/oxide-win32-x64-msvc': 4.0.15
     dev: true
 
-  /@tailwindcss/vite/4.0.15_vite@6.2.2:
+  /@tailwindcss/vite/4.0.15_vite@6.2.3:
     resolution: {integrity: sha512-JRexava80NijI8cTcLXNM3nQL5A0ptTHI8oJLLe8z1MpNB6p5J4WCdJJP8RoyHu8/eB1JzEdbpH86eGfbuaezQ==}
     peerDependencies:
       vite: ^5.2.0 || ^6
@@ -791,7 +791,7 @@ packages:
       '@tailwindcss/oxide': 4.0.15
       lightningcss: 1.29.2
       tailwindcss: 4.0.15
-      vite: 6.2.2
+      vite: 6.2.3
     dev: true
 
   /@testing-library/dom/9.3.4:
@@ -832,6 +832,10 @@ packages:
     resolution: {integrity: sha512-AYnb1nQyY49te+VRAVgmzfcgjYS91mY5P0TKUDCLEM+gNnA+3T6rWITXRLYCpahpqSQbN5cE+gHpnPyXjHWxcw==}
     dev: true
 
+  /@types/estree/1.0.7:
+    resolution: {integrity: sha512-w28IoSUCJpidD/TGviZwwMJckNESJZXFu7NBZ5YJ4mEUnNraUn9Pm8HSZm/jDF1pDWYKspWE7oVphigUPRakIQ==}
+    dev: true
+
   /@types/json-schema/7.0.15:
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
     dev: true
@@ -840,14 +844,14 @@ packages:
     resolution: {integrity: sha512-oIQLCGWtcFZy2JW77j9k8nHzAOpqMHLQejDA48XXMWH6tjCQHz5RCFz1bzsmROyL6PUm+LLnUiI4BCn221inxA==}
     dev: false
 
-  /@vitejs/plugin-vue/5.2.3_vite@6.2.2+vue@3.5.13:
+  /@vitejs/plugin-vue/5.2.3_vite@6.2.3+vue@3.5.13:
     resolution: {integrity: sha512-IYSLEQj4LgZZuoVpdSUCw3dIynTWQgPlaRP6iAvMle4My0HdYwr5g5wQAfwOeHQBmYwEkqF70nRpSilr6PoUDg==}
     engines: {node: ^18.0.0 || >=20.0.0}
     peerDependencies:
       vite: ^5.0.0 || ^6.0.0
       vue: ^3.2.25
     dependencies:
-      vite: 6.2.2
+      vite: 6.2.3
       vue: 3.5.13
     dev: true
 
@@ -860,7 +864,7 @@ packages:
       tinyrainbow: 2.0.0
     dev: true
 
-  /@vitest/mocker/3.0.9_vite@6.2.2:
+  /@vitest/mocker/3.0.9_vite@6.2.3:
     resolution: {integrity: sha512-ryERPIBOnvevAkTq+L1lD+DTFBRcjueL9lOUfXsLfwP92h4e+Heb+PjiqS3/OURWPtywfafK0kj++yDFjWUmrA==}
     peerDependencies:
       msw: ^2.4.9
@@ -874,7 +878,7 @@ packages:
       '@vitest/spy': 3.0.9
       estree-walker: 3.0.3
       magic-string: 0.30.17
-      vite: 6.2.2
+      vite: 6.2.3
     dev: true
 
   /@vitest/pretty-format/3.0.9:
@@ -1672,7 +1676,7 @@ packages:
   /estree-walker/3.0.3:
     resolution: {integrity: sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g==}
     dependencies:
-      '@types/estree': 1.0.6
+      '@types/estree': 1.0.7
     dev: true
 
   /esutils/2.0.3:
@@ -3111,7 +3115,7 @@ packages:
       debug: 4.4.0
       es-module-lexer: 1.6.0
       pathe: 2.0.3
-      vite: 6.2.2
+      vite: 6.2.3
     transitivePeerDependencies:
       - '@types/node'
       - jiti
@@ -3127,8 +3131,8 @@ packages:
       - yaml
     dev: true
 
-  /vite/6.2.2:
-    resolution: {integrity: sha512-yW7PeMM+LkDzc7CgJuRLMW2Jz0FxMOsVJ8Lv3gpgW9WLcb9cTW+121UEr1hvmfR7w3SegR5ItvYyzVz1vxNJgQ==}
+  /vite/6.2.3:
+    resolution: {integrity: sha512-IzwM54g4y9JA/xAeBPNaDXiBF8Jsgl3VBQ2YQ/wOY6fyW3xMdSoltIV3Bo59DErdqdE6RxUfv8W69DvUorE4Eg==}
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
     hasBin: true
     peerDependencies:
@@ -3203,7 +3207,7 @@ packages:
         optional: true
     dependencies:
       '@vitest/expect': 3.0.9
-      '@vitest/mocker': 3.0.9_vite@6.2.2
+      '@vitest/mocker': 3.0.9_vite@6.2.3
       '@vitest/pretty-format': 3.0.9
       '@vitest/runner': 3.0.9
       '@vitest/snapshot': 3.0.9
@@ -3220,7 +3224,7 @@ packages:
       tinyexec: 0.3.2
       tinypool: 1.0.2
       tinyrainbow: 2.0.0
-      vite: 6.2.2
+      vite: 6.2.3
       vite-node: 3.0.9
       why-is-node-running: 2.3.0
     transitivePeerDependencies:
