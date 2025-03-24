@@ -49,11 +49,3 @@ jobs:
         with:
           name: dist
           path: dist/
-
-      - name: Add coverage report to PR
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN || '' }}
-          file: ./coverage/lcov.info
-          fail_ci_if_error: false
-        if: github.event_name == 'pull_request'
