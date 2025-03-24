@@ -13,9 +13,11 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useHomeAssistant } from '../composables/useHomeAssistant';
 
+// Get the steps and speed from the home assistant composable
+// They're already readonly refs as defined in the useHomeAssistant composable
 const { steps, speed } = useHomeAssistant();
 </script>
 

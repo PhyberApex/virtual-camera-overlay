@@ -1,10 +1,13 @@
-import js from '@eslint/js';
 import prettier from 'eslint-config-prettier';
 import vuePlugin from 'eslint-plugin-vue';
 import globals from 'globals';
+import {
+  defineConfigWithVueTs,
+  vueTsConfigs,
+} from '@vue/eslint-config-typescript'
 
-export default [
-  js.configs.recommended,
+export default defineConfigWithVueTs(
+  vueTsConfigs.recommended,
   ...vuePlugin.configs['flat/recommended'],
   prettier,
   {
@@ -27,4 +30,4 @@ export default [
       'coverage/',
     ]
   },
-];
+);

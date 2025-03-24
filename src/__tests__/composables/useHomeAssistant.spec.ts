@@ -1,8 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { useHomeAssistant } from '../../composables/useHomeAssistant';
+import { useHomeAssistant } from '../../composables/useHomeAssistant.js';
 
 // Mock the WebSocket
 class MockWebSocket {
+  private onopen: null;
+  private onmessage: null;
+  private onclose: null;
+  private onerror: null;
   constructor() {
     this.onopen = null;
     this.onmessage = null;
@@ -30,7 +34,7 @@ vi.stubGlobal('import', {
 });
 
 describe('useHomeAssistant', () => {
-  let homeAssistant;
+  let homeAssistant: ReturnType<typeof useHomeAssistant>;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -62,10 +66,10 @@ describe('useHomeAssistant', () => {
     expect(typeof homeAssistant.setBrbEnabled).toBe('function');
   });
 
-
   it('should generate mock data when started', () => {
     homeAssistant = useHomeAssistant(true);
-    homeAssistant.startMockStepData();
+    if (homeAssistant.startMockStepData)
+      homeAssistant.startMockStepData();
     // Wait for the first interval to execute
     vi.advanceTimersByTime(1000);
 

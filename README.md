@@ -1,3 +1,6 @@
+![CI](https://github.com/PhyberApex/virtual-camera-overlay/actions/workflows/ci.yml/badge.svg)
+
+
 # Virtual Camera Overlay
 
 A Vue.js-based overlay for displaying fitness tracking data from Home Assistant in OBS Studio.
@@ -109,7 +112,7 @@ This makes it easy to test and develop the overlay without needing a real fitnes
 
 ### Customizing Entities
 
-If you need to track different entities, edit the `composables/useHomeAssistant.js` file and update the entity IDs in the `subscribeToEntities` function.
+If you need to track different entities, edit the `composables/useHomeAssistant.ts` file and update the entity IDs in the `subscribeToEntities` function.
 
 ## Troubleshooting
 

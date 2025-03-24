@@ -46,10 +46,13 @@
   </div>
 </template>
 
-<script setup>
-import { computed, ref } from 'vue';
+<script setup lang="ts">
+import { computed, ref, type ComputedRef, type Ref } from 'vue';
 import { useHomeAssistant } from '../composables/useHomeAssistant';
 import { onKeyStroke } from '@vueuse/core';
+
+// Type definition for available events
+type EventType = 'brb';
 
 const {
   steps,
@@ -62,35 +65,50 @@ const {
   setBrbEnabled,
 } = useHomeAssistant(true);
 
-const isDevFromEnv = computed(() => import.meta.env.DEV);
-const isDevEnabledInternal = ref(false);
+const isDevFromEnv: ComputedRef<boolean> = computed(() => import.meta.env.DEV as boolean);
+const isDevEnabledInternal: Ref<boolean> = ref(false);
 
-const isDev = computed(() => isDevFromEnv.value && isDevEnabledInternal.value);
+const isDev: ComputedRef<boolean> = computed(
+  () => isDevFromEnv.value && isDevEnabledInternal.value
+);
 
+// Register keyboard shortcut to toggle dev panel
 onKeyStroke('u', () => {
   isDevEnabledInternal.value = !isDevEnabledInternal.value;
 });
 
-const connectionClass = computed(() => {
-  return (
-    {
-      disconnected: 'text-red-500',
-      authenticating: 'text-yellow-500',
-      connected: 'text-green-500',
-    }[connectionState.value] || 'text-gray-500'
-  );
+interface ConnectionClassMap {
+  disconnected: string;
+  authenticating: string;
+  connected: string;
+  [key: string]: string;
+}
+
+const connectionClass: ComputedRef<string> = computed(() => {
+  const classMap: ConnectionClassMap = {
+    disconnected: 'text-red-500',
+    authenticating: 'text-yellow-500',
+    connected: 'text-green-500',
+  };
+  return classMap[connectionState.value] || 'text-gray-500';
 });
 
-const updateConnectionState = e => {
-  setConnectionState(e.target.value);
+const updateConnectionState = (e: Event): void => {
+  if (setConnectionState && e.target) {
+    const target = e.target as HTMLSelectElement;
+    setConnectionState(target.value as 'disconnected' | 'authenticating' | 'connected');
+  }
 };
 
-const eventToFire = ref('brb');
+const eventToFire: Ref<EventType> = ref('brb');
 
-const fireEvent = () => {
+const fireEvent = (): void => {
   switch (eventToFire.value) {
     case 'brb':
-      setBrbEnabled(!brbEnabled.value);
+      if (setBrbEnabled) {
+        setBrbEnabled(!brbEnabled.value);
+      }
+      break;
   }
 };
 </script>

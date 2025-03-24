@@ -31,31 +31,29 @@
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted, watch, type Ref } from 'vue';
 import { useHomeAssistant } from '../composables/useHomeAssistant';
 import gsap from 'gsap';
 
-const props = defineProps({
-  imageUrls: {
-    type: Array,
-    required: true,
-  },
-  imageCount: {
-    type: Number,
-    default: 25,
-  },
+interface Props {
+  imageUrls: string[];
+  imageCount?: number;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  imageCount: 25,
 });
 
 const { brbEnabled } = useHomeAssistant();
-const rainContainer = ref(null);
-const title = ref(null);
-const subtitle = ref(null);
+const rainContainer: Ref<HTMLDivElement | null> = ref(null);
+const title: Ref<HTMLHeadingElement | null> = ref(null);
+const subtitle: Ref<HTMLParagraphElement | null> = ref(null);
 
-let animations = [];
+let animations: gsap.core.Timeline[] = [];
 
 // Simple rain animation setup function
-const setupRainAnimation = () => {
+const setupRainAnimation = (): void => {
   if (!rainContainer.value) return;
 
   // Clear any existing animations
@@ -66,7 +64,7 @@ const setupRainAnimation = () => {
   rainContainer.value.innerHTML = '';
 
   // Helper function to get a random image URL
-  const getRandomImageUrl = () => {
+  const getRandomImageUrl = (): string => {
     if (!props.imageUrls || props.imageUrls.length === 0) {
       return ''; // Return empty if no images provided
     }
@@ -97,7 +95,7 @@ const setupRainAnimation = () => {
     const tl = gsap.timeline({
       repeat: -1,
       repeatDelay: Math.random() * 3 + 1, // 1-4 seconds between falls
-      onRepeat: function () {
+      onRepeat: function (): void {
         // Change image when the timeline repeats
         gsap.set(img, {
           opacity: 0,
@@ -133,7 +131,7 @@ const setupRainAnimation = () => {
 };
 
 // Watch for changes in brbEnabled
-watch(brbEnabled, newVal => {
+watch(brbEnabled, (newVal: boolean) => {
   if (newVal) {
     // Small delay to ensure DOM is ready
     setTimeout(setupRainAnimation, 100);

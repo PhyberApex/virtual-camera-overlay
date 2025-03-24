@@ -26,17 +26,34 @@
   </div>
 </template>
 
-<script setup>
-import { computed } from 'vue';
+<script setup lang="ts">
+import { computed, type ComputedRef } from 'vue';
 import StepsDisplay from './components/StepsDisplay.vue';
 import DevPanel from './components/DevPanel.vue';
 import BeRightBack from './components/BeRightBack.vue';
 import { useHomeAssistant } from './composables/useHomeAssistant';
 
+// Get the connection state from the home assistant composable
 const { connectionState } = useHomeAssistant();
 
-const connectionStatus = computed(() => {
-  const statuses = {
+// Define types for the status mapping
+interface StatusMap {
+  disconnected: string;
+  authenticating: string;
+  connected: string;
+  [key: string]: string; // Index signature for any other potential state
+}
+
+// Define types for the class mapping
+interface ClassMap {
+  disconnected: string;
+  authenticating: string;
+  connected: string;
+  [key: string]: string; // Index signature for any other potential state
+}
+
+const connectionStatus: ComputedRef<string> = computed(() => {
+  const statuses: StatusMap = {
     disconnected: 'Disconnected',
     authenticating: 'Connecting...',
     connected: 'Connected',
@@ -44,8 +61,8 @@ const connectionStatus = computed(() => {
   return statuses[connectionState.value] || 'Unknown status';
 });
 
-const connectionIndicatorClass = computed(() => {
-  const classes = {
+const connectionIndicatorClass: ComputedRef<string> = computed(() => {
+  const classes: ClassMap = {
     disconnected: 'bg-red-500 bg-opacity-70 text-white',
     authenticating: 'bg-yellow-500 bg-opacity-70 text-black',
     connected: 'bg-green-500 bg-opacity-70 text-white',

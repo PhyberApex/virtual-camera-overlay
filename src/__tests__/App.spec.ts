@@ -3,7 +3,7 @@ import { shallowMount } from '@vue/test-utils';
 import App from '../App.vue';
 import { nextTick, ref } from 'vue';
 
-const connectionState = ref('disconnected')
+const connectionState = ref('disconnected');
 
 // Mock the homeAssistant composable
 vi.mock('../composables/useHomeAssistant', () => ({
@@ -26,7 +26,7 @@ describe('App', () => {
   it('does not show connection indicator when connected', async () => {
     const wrapper = shallowMount(App);
     connectionState.value = 'connected';
-    await nextTick()
+    await nextTick();
     expect(wrapper.find('.fixed').exists()).toBe(false);
   });
 });

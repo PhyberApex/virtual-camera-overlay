@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { mount, VueWrapper } from '@vue/test-utils';
 import StepsDisplay from '../../components/StepsDisplay.vue';
+import type { ComponentPublicInstance } from 'vue';
 
 // Mock the homeAssistant composable
 vi.mock('../../composables/useHomeAssistant', () => ({
@@ -12,7 +13,7 @@ vi.mock('../../composables/useHomeAssistant', () => ({
 }));
 
 describe('StepsDisplay', () => {
-  let wrapper;
+  let wrapper: VueWrapper<ComponentPublicInstance>;
 
   beforeEach(() => {
     wrapper = mount(StepsDisplay);
@@ -28,13 +29,13 @@ describe('StepsDisplay', () => {
   });
 
   it('displays the correct speed value', () => {
-    const speedValue = wrapper.findAll('.stats-value')[1].text();
+    const speedValue = wrapper.findAll('.stats-value')[1]?.text();
     expect(speedValue).toBe('4.5');
   });
 
   it('displays the correct labels', () => {
     const labels = wrapper.findAll('.stats-label');
-    expect(labels[0].text()).toBe('steps');
-    expect(labels[1].text()).toBe('km/h');
+    expect(labels[0]?.text()).toBe('steps');
+    expect(labels[1]?.text()).toBe('km/h');
   });
 });
