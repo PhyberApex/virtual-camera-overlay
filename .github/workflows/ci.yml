@@ -61,14 +61,8 @@ jobs:
         with:
           name: dist
 
-      - name: Mount SMB share
-        run: mount -t cifs //192.168.1.13/config/www/overlay ~/mount/ -o credentials=/etc/samba/creds,vers=3.0
-
       - name: Clean overlay
-        run: rm -rf ~/mount/*
+        run: rm -rf /mount/*
 
       - name: Copy over files
-        run: cp -R . ~/mount/
-
-      - name: Unmount SMB share
-        run: umount ~/mount/
+        run: cp -R . /mount/
