@@ -62,7 +62,7 @@ jobs:
           name: dist
 
       - name: Clean overlay
-        run: rm -rf /mount/*
+        run: rm -rf ~/mount/*
 
       - name: Copy over files
-        run: cp -R . /mount/
+        run: cp -R . ~/mount/
