@@ -63,5 +63,5 @@ jobs:
 
       - name: Copy version to share
         run: |
-          mkdir ~/${{ github.sha }} && cp dist/* ~/${{ github.sha }}
+          mkdir ~/build/${{ github.sha }} && cp .* ~/build/${{ github.sha }}
     
