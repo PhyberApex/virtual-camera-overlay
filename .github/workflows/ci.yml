@@ -38,6 +38,13 @@ jobs:
       - name: Prepare env
         run: cp .env.example .env
 
+      - name: Replace secrets
+        run: |
+          sed -i "s|your_long_lived_access_token_here|${{ secrets.ha_token }}|g" .env
+          sed -i "s|your_ha_host|${{ secrets.ha_host }}|g" .env
+          sed -i "s|your_ha_port|${{ secrets.ha_port }}|g" .env
+
+
       - name: Build
         run: pnpm build
 
@@ -64,12 +71,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: dist
-
-      - name: Replace secrets
-        run: |
-          sed -i "s|your_long_lived_access_token_here|${{ secrets.ha_token }}|g" assets/index-*.js
-          sed -i "s|your_ha_host|${{ secrets.ha_host }}|g" assets/index-*.js
-          sed -i "s|your_ha_port|${{ secrets.ha_port }}|g" assets/index-*.js
 
       - name: Clean overlay
         run: rm -rf ~/mount/*
