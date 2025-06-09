@@ -35,6 +35,9 @@ jobs:
       - name: Run tests with coverage
         run: pnpm test:coverage
 
+      - name: Prepare env
+        run: cp .env.example .env
+
       - name: Build
         run: pnpm build
 
@@ -53,6 +56,7 @@ jobs:
   deploy:
     runs-on: [self-hosted, pi]
     needs: build-test-lint
+    environment: prod
     if: github.event_name == 'push'
 
     steps:
@@ -60,6 +64,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: dist
+
+      - name: Replace secrets
+        run: |
+          sed -i "s|your_long_lived_access_token_here|${{ github.secrets.ha_token }}|g" index-*.js && \
+          sed -i "s|your_ha_host|${{ github.secrets.ha_host }}|g" index-*.js && \
+          sed -i "s|your_ha_port|${{ github.secrets.ha_port }}|g" index-*.js && \
 
       - name: Clean overlay
         run: rm -rf ~/mount/*
