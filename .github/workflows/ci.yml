@@ -50,3 +50,18 @@ jobs:
         with:
           name: dist
           path: dist/
+  deploy:
+    runs-on: [self-hosted, pi]
+    needs: build-test-lint
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+
+      - name: Copy version to share
+        run: |
+          mkdir ~/${{ github.sha }} && cp dist/* ~/${{ github.sha }}
+    
