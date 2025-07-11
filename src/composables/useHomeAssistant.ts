@@ -24,6 +24,7 @@ type HAMessage = HAAuthRequiredMessage | HAAuthOkMessage | HAEventMessage;
 
 const steps: Ref<number> = ref(0);
 const speed: Ref<number> = ref(0);
+const distance: Ref<number> = ref(0);
 const connectionState: Ref<ConnectionState> = ref('disconnected');
 const brbEnabled: Ref<boolean> = ref(false);
 
@@ -107,6 +108,11 @@ const connectToHA = (): void => {
         steps.value = stepsData;
       }
 
+      const distanceData = eventData['sensor.sensor.ksmb_v1_7aed_current_distance']?.s;
+      if (distanceData !== 'unavailable' && typeof distanceData === 'number') {
+        distance.value = distanceData;
+      }
+
       const speedData = eventData['number.ksmb_v1_7aed_speed_level']?.s;
       if (speedData !== 'unavailable' && typeof speedData === 'number') {
         speed.value = speedData;
@@ -120,6 +126,13 @@ const connectToHA = (): void => {
         const newSteps = eventData['sensor.ksmb_v1_7aed_current_step_count']['+']?.s;
         if (typeof newSteps === 'number' || typeof newSteps === 'string') {
           steps.value = parseInt(String(newSteps), 10);
+        }
+      } else if (eventData['sensor.ksmb_v1_7aed_current_distance']) {
+        const newDistance = eventData['sensor.ksmb_v1_7aed_current_distance']['+']?.s;
+        if (typeof newDistance === 'number') {
+          distance.value = newDistance;
+        } else if (typeof newDistance === 'string') {
+          distance.value = parseFloat(newDistance);
         }
       } else if (eventData['number.ksmb_v1_7aed_speed_level']) {
         const newSpeed = eventData['number.ksmb_v1_7aed_speed_level']['+']?.s;
@@ -151,6 +164,7 @@ const connectToHA = (): void => {
 const subscribeToEntities = (): void => {
   const entities: string[] = [
     'sensor.ksmb_v1_7aed_current_step_count',
+    'sensor.ksmb_v1_7aed_current_distance',
     'number.ksmb_v1_7aed_speed_level',
     'input_boolean.janis_vco_brb',
   ];
@@ -174,6 +188,7 @@ const setBrbEnabled = (enabled: boolean): void => {
 
 interface HomeAssistantReturn {
   steps: Readonly<Ref<number>>;
+  distance: Readonly<Ref<number>>;
   speed: Readonly<Ref<number>>;
   connectionState: Readonly<Ref<ConnectionState>>;
   brbEnabled: Readonly<Ref<boolean>>;
@@ -197,6 +212,7 @@ export function useHomeAssistant(isDevPanel: boolean = false): HomeAssistantRetu
 
   return {
     steps: readonly(steps),
+    distance: readonly(distance),
     speed: readonly(speed),
     connectionState: readonly(connectionState),
     brbEnabled: readonly(brbEnabled),

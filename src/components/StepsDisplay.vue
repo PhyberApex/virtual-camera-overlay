@@ -1,9 +1,13 @@
 <template>
-  <div v-if="steps !== 0 && speed !== 0" class="overlay-container">
+  <div v-if="steps !== 0 && speed !== 0 && distance !== 0" class="overlay-container">
     <div class="stats-display">
       <div class="stats-row">
         <span class="stats-value">{{ steps }}</span>
         <span class="stats-label">steps</span>
+      </div>
+      <div class="stats-row">
+        <span class="stats-value">{{ distance }}</span>
+        <span class="stats-label">meters</span>
       </div>
       <div class="stats-row">
         <span class="stats-value">{{ speed }}</span>
@@ -18,7 +22,7 @@ import { useHomeAssistant } from '../composables/useHomeAssistant';
 
 // Get the steps and speed from the home assistant composable
 // They're already readonly refs as defined in the useHomeAssistant composable
-const { steps, speed } = useHomeAssistant();
+const { steps, speed, distance } = useHomeAssistant();
 </script>
 
 <style scoped>
