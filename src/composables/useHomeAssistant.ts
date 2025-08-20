@@ -41,7 +41,7 @@ const port: string = import.meta.env.VITE_HA_PORT as string;
 const startMockStepData = (): void => {
   if (mockDataInterval) clearInterval(mockDataInterval);
 
-  console.log('Starting mock data generation');
+  console.log('Starting mock step data generation');
   // Initial values
   steps.value = 1250;
   speed.value = 3.5;
@@ -60,6 +60,31 @@ const startMockStepData = (): void => {
 
 // Stop mock data generation
 const stopMockStepData = (): void => {
+  if (mockDataInterval) {
+    clearInterval(mockDataInterval);
+    mockDataInterval = null;
+    console.log('Stopped mock data generation');
+  }
+};
+
+const startMockHeartData = (): void => {
+  if (mockDataInterval) clearInterval(mockDataInterval);
+
+  console.log('Starting mock step data generation');
+  // Initial values
+  heartRate.value = 65;
+  connectionState.value = 'connected';
+
+  mockDataInterval = window.setInterval(() => {
+    // Randomly fluctuate heartRate between 60 and 120
+    heartRate.value = parseFloat((60 + Math.random() * 60).toFixed(1));
+
+    console.log(`Mock data updated: ${heartRate.value} bpm`);
+  }, 1000);
+};
+
+// Stop mock data generation
+const stopMockHeartData = (): void => {
   if (mockDataInterval) {
     clearInterval(mockDataInterval);
     mockDataInterval = null;
@@ -218,6 +243,8 @@ interface HomeAssistantReturn {
   heartRate: Readonly<Ref<number>>;
   startMockStepData?: () => void;
   stopMockStepData?: () => void;
+  startMockHeartData?: () => void;
+  stopMockHeartData?: () => void;
   setConnectionState?: (state: ConnectionState) => void;
   setBrbEnabled?: (enabled: boolean) => void;
   setHeartEnabled?: (enabled: boolean) => void;
@@ -233,6 +260,7 @@ export function useHomeAssistant(isDevPanel: boolean = false): HomeAssistantRetu
       socket.close();
     }
     stopMockStepData();
+    stopMockHeartData();
   });
 
   return {
@@ -245,6 +273,8 @@ export function useHomeAssistant(isDevPanel: boolean = false): HomeAssistantRetu
     heartRate: readonly(heartRate),
     startMockStepData: isDevPanel ? startMockStepData : undefined,
     stopMockStepData: isDevPanel ? stopMockStepData : undefined,
+    startMockHeartData: isDevPanel ? startMockHeartData : undefined,
+    stopMockHeartData: isDevPanel ? stopMockHeartData : undefined,
     setConnectionState: isDevPanel ? setConnectionState : undefined,
     setBrbEnabled: isDevPanel ? setBrbEnabled : undefined,
     setHeartEnabled: isDevPanel ? setHeartEnabled : undefined,

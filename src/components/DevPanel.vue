@@ -29,6 +29,17 @@
         </div>
       </div>
       <div class="flex justify-between items-center mb-2">
+        <p>Heart data</p>
+        <div class="space-x-2">
+          <button class="bg-gray-700 px-2 py-1 rounded text-xs" @click="startMockHeartData">
+            Start
+          </button>
+          <button class="bg-gray-700 px-2 py-1 rounded text-xs" @click="stopMockHeartData">
+            Stop
+          </button>
+        </div>
+      </div>
+      <div class="flex justify-between items-center mb-2">
         <p>Send Events</p>
         <select v-model="eventToFire" class="bg-gray-700 rounded px-1 text-sm">
           <option value="brb">Be right back</option>
@@ -42,6 +53,7 @@
         </div>
         <div>Steps: {{ steps }}</div>
         <div>Speed: {{ speed }} km/h</div>
+        <div>Heart: {{ heartRate }} bpm</div>
       </div>
     </div>
   </div>
@@ -61,8 +73,11 @@ const {
   connectionState,
   brbEnabled,
   heartEnabled,
+  heartRate,
   startMockStepData,
   stopMockStepData,
+  startMockHeartData,
+  stopMockHeartData,
   setConnectionState,
   setBrbEnabled,
   setHeartEnabled,

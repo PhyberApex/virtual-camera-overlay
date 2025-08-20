@@ -23,6 +23,7 @@
         'rain/mortyxmas.png',
       ]"
     />
+    <HeartRate />
   </div>
 </template>
 
@@ -31,6 +32,7 @@ import { computed, type ComputedRef } from 'vue';
 import StepsDisplay from './components/StepsDisplay.vue';
 import DevPanel from './components/DevPanel.vue';
 import BeRightBack from './components/BeRightBack.vue';
+import HeartRate from './components/HeartRate.vue';
 import { useHomeAssistant } from './composables/useHomeAssistant';
 
 // Get the connection state from the home assistant composable
