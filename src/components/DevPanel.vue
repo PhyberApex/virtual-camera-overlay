@@ -32,6 +32,7 @@
         <p>Send Events</p>
         <select v-model="eventToFire" class="bg-gray-700 rounded px-1 text-sm">
           <option value="brb">Be right back</option>
+          <option value="heart">Heart</option>
         </select>
         <button class="bg-gray-700 px-2 py-1 rounded text-xs" @click="fireEvent">Fire</button>
       </div>
@@ -52,17 +53,19 @@ import { useHomeAssistant } from '../composables/useHomeAssistant';
 import { onKeyStroke } from '@vueuse/core';
 
 // Type definition for available events
-type EventType = 'brb';
+type EventType = 'brb' | 'heart';
 
 const {
   steps,
   speed,
   connectionState,
   brbEnabled,
+  heartEnabled,
   startMockStepData,
   stopMockStepData,
   setConnectionState,
   setBrbEnabled,
+  setHeartEnabled,
 } = useHomeAssistant(true);
 
 const isDevFromEnv: ComputedRef<boolean> = computed(() => import.meta.env.DEV as boolean);
@@ -107,6 +110,11 @@ const fireEvent = (): void => {
     case 'brb':
       if (setBrbEnabled) {
         setBrbEnabled(!brbEnabled.value);
+      }
+      break;
+    case 'heart':
+      if (setHeartEnabled) {
+        setHeartEnabled(!heartEnabled.value);
       }
       break;
   }
