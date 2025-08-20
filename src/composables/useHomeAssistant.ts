@@ -1,4 +1,3 @@
-import { readOnly } from 'happy-dom/lib/PropertySymbol.js';
 import { onMounted, onUnmounted, readonly, ref, type Ref } from 'vue';
 
 // Define types for the state
