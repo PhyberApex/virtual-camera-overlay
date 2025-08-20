@@ -1,3 +1,4 @@
+import { readOnly } from 'happy-dom/lib/PropertySymbol.js';
 import { onMounted, onUnmounted, readonly, ref, type Ref } from 'vue';
 
 // Define types for the state
@@ -27,6 +28,8 @@ const speed: Ref<number> = ref(0);
 const distance: Ref<number> = ref(0);
 const connectionState: Ref<ConnectionState> = ref('disconnected');
 const brbEnabled: Ref<boolean> = ref(false);
+const heartEnabled: Ref<boolean> = ref(false);
+const heartRate: Ref<number> = ref(70)
 
 let socket: WebSocket | null = null;
 let msgId: number = 1;
@@ -117,8 +120,13 @@ const connectToHA = (): void => {
       if (speedData !== 'unavailable' && typeof speedData === 'number') {
         speed.value = speedData;
       }
+      const heartData = eventData['sensor.sm_s921b_heart_rate']?.s;
+      if (heartData !== 'unavailable' && typeof heartData === 'number') {
+        heartRate.value = speedData;
+      }
 
       brbEnabled.value = eventData['input_boolean.janis_vco_brb']?.s === 'on';
+      heartEnabled.value = eventData['input_boolean.janis_vco_heart']?.s === 'on';
     } else if (message.type === 'event' && message.event && message.event.c) {
       const eventData = message.event.c;
 
@@ -143,6 +151,15 @@ const connectToHA = (): void => {
         }
       } else if (eventData['input_boolean.janis_vco_brb']) {
         brbEnabled.value = eventData['input_boolean.janis_vco_brb']['+']?.s === 'on';
+      } else if (eventData['input_boolean.janis_vco_heart']) {
+        heartEnabled.value = eventData['input_boolean.janis_vco_heart']['+']?.s === 'on';
+      } else if (eventData['sensor.sm_s921b_heart_rate']) {
+        const newHeart = eventData['sensor.sm_s921b_heart_rate']['+']?.s;
+        if (typeof newHeart === 'number') {
+          heartRate.value = newHeart;
+        } else if (typeof newHeart === 'string') {
+          heartRate.value = parseFloat(newHeart);
+        }
       }
     }
   };
@@ -167,6 +184,8 @@ const subscribeToEntities = (): void => {
     'sensor.ksmb_v1_7aed_current_distance',
     'number.ksmb_v1_7aed_speed_level',
     'input_boolean.janis_vco_brb',
+    'sensor.sm_s921b_heart_rate',
+    'input_boolean.janis_vco_heart',
   ];
 
   socket?.send(
@@ -186,16 +205,23 @@ const setBrbEnabled = (enabled: boolean): void => {
   brbEnabled.value = enabled;
 };
 
+const setHeartEnabled = (enabled: boolean): void => {
+  heartEnabled.value = enabled;
+};
+
 interface HomeAssistantReturn {
   steps: Readonly<Ref<number>>;
   distance: Readonly<Ref<number>>;
   speed: Readonly<Ref<number>>;
   connectionState: Readonly<Ref<ConnectionState>>;
   brbEnabled: Readonly<Ref<boolean>>;
+  heartEnabled: Readonly<Ref<boolean>>;
+  heartRate: Readonly<Ref<number>>;
   startMockStepData?: () => void;
   stopMockStepData?: () => void;
   setConnectionState?: (state: ConnectionState) => void;
   setBrbEnabled?: (enabled: boolean) => void;
+  setHeartEnabled?: (enabled: boolean) => void;
 }
 
 export function useHomeAssistant(isDevPanel: boolean = false): HomeAssistantReturn {
@@ -216,9 +242,12 @@ export function useHomeAssistant(isDevPanel: boolean = false): HomeAssistantRetu
     speed: readonly(speed),
     connectionState: readonly(connectionState),
     brbEnabled: readonly(brbEnabled),
+    heartEnabled: readonly(heartEnabled),
+    heartRate: readonly(heartRate),
     startMockStepData: isDevPanel ? startMockStepData : undefined,
     stopMockStepData: isDevPanel ? stopMockStepData : undefined,
     setConnectionState: isDevPanel ? setConnectionState : undefined,
     setBrbEnabled: isDevPanel ? setBrbEnabled : undefined,
+    setHeartEnabled: isDevPanel ? setHeartEnabled : undefined,
   };
 }
