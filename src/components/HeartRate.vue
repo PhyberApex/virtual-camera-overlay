@@ -218,11 +218,7 @@ onUnmounted(() => {
 }
 
 /* Mobile responsive adjustments */
-@media (max-width: 768px) {
-  .fixed.top-8.right-8 {
-    @apply top-5 right-5;
-  }
-  
+@media (max-width: 768px) {  
   .min-w-36 {
     @apply min-w-32;
   }
