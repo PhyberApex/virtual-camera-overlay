@@ -36,7 +36,7 @@ let mockStepDataInterval: number | null = null;
 let mockHeartDataInterval: number | null = null;
 const token: string = import.meta.env.VITE_HA_TOKEN as string;
 const devHost: string = import.meta.env.VITE_HA_DEV_HOST as string;
-const port: string = import.meta.env.VITE_HA_PORT as string;
+const devPort: string = import.meta.env.VITE_HA_DEV_PORT as string;
 
 // Generate mock data for development
 const startMockStepData = (): void => {
@@ -102,6 +102,7 @@ const connectToHA = (): void => {
   const isDev: boolean = import.meta.env.DEV as boolean;
   const protocol: string = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const host: string = isDev ? devHost : window.location.hostname;
+  const port: string = isDev ? devPort : window.location.port;
   const url: string = `${protocol}//${host}:${port}/api/websocket`;
 
   console.log(
