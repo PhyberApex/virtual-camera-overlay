@@ -19,11 +19,10 @@
     <div class="bpm-display" :class="getHeartRateClass()">
       <div class="bpm-value">{{ heartRate }}</div>
       <div class="bpm-label">BPM</div>
-      <div class="bpm-zone">{{ getHeartRateZone() }}</div>
     </div>
 
     <!-- Subtle blood drop animation for high heart rates -->
-    <div v-if="heartRate > 120" class="blood-drops">
+    <div v-if="heartRate > 100" class="blood-drops">
       <div
         v-for="drop in getBloodDropCount()"
         :key="drop"
@@ -50,29 +49,16 @@ const pulseWaves: Ref<HTMLDivElement[]> = ref([]);
 
 let borderPulseAnimation: gsap.core.Timeline | null = null;
 
-// Heart rate zones
-const getHeartRateZone = (): string => {
-  if (!heartRate.value) return 'Resting';
-
-  const bpm = heartRate.value;
-  if (bpm < 60) return 'Resting';
-  if (bpm < 100) return 'Normal';
-  if (bpm < 120) return 'Active';
-  if (bpm < 150) return 'Exercise';
-  if (bpm < 180) return 'Intense';
-  return 'Maximum';
-};
-
 // Get CSS classes based on heart rate zones
 const getHeartRateClass = (): string => {
   if (!heartRate.value) return 'zone-resting';
 
   const bpm = heartRate.value;
   if (bpm < 60) return 'zone-resting';
-  if (bpm < 100) return 'zone-normal';
-  if (bpm < 120) return 'zone-active';
-  if (bpm < 150) return 'zone-exercise';
-  if (bpm < 180) return 'zone-intense';
+  if (bpm < 70) return 'zone-normal';
+  if (bpm < 100) return 'zone-active';
+  if (bpm < 120) return 'zone-exercise';
+  if (bpm < 130) return 'zone-intense';
   return 'zone-maximum';
 };
 
@@ -80,9 +66,9 @@ const getHeartRateClass = (): string => {
 const getBloodDropCount = (): number => {
   if (!heartRate.value) return 0;
   const bpm = heartRate.value;
-  if (bpm < 120) return 0;
-  if (bpm < 150) return 3;
-  if (bpm < 180) return 5;
+  if (bpm < 100) return 0;
+  if (bpm < 120) return 3;
+  if (bpm < 130) return 5;
   return 8;
 };
 

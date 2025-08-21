@@ -78,13 +78,13 @@ const startMockHeartData = (): void => {
 
   mockHeartDataInterval = window.setInterval(() => {
     // Randomly fluctuate heartRate between 60 and 180
-    if(heartRate.value >= 175)
+    if(heartRate.value > 140)
       heartRate.value = 60
     else
-      heartRate.value += 5
+      heartRate.value += Math.floor(Math.random() * 8) + 3
 
     console.log(`Mock data updated: ${heartRate.value} bpm`);
-  }, 500);
+  }, 2000);
 };
 
 // Stop mock data generation
