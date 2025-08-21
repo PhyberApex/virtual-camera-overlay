@@ -32,14 +32,15 @@ const heartRate: Ref<number> = ref(70)
 
 let socket: WebSocket | null = null;
 let msgId: number = 1;
-let mockDataInterval: number | null = null;
+let mockStepDataInterval: number | null = null;
+let mockHeartDataInterval: number | null = null;
 const token: string = import.meta.env.VITE_HA_TOKEN as string;
 const devHost: string = import.meta.env.VITE_HA_DEV_HOST as string;
 const port: string = import.meta.env.VITE_HA_PORT as string;
 
 // Generate mock data for development
 const startMockStepData = (): void => {
-  if (mockDataInterval) clearInterval(mockDataInterval);
+  if (mockStepDataInterval) clearInterval(mockStepDataInterval);
 
   console.log('Starting mock step data generation');
   // Initial values
@@ -47,7 +48,7 @@ const startMockStepData = (): void => {
   speed.value = 3.5;
   connectionState.value = 'connected';
 
-  mockDataInterval = window.setInterval(() => {
+  mockStepDataInterval = window.setInterval(() => {
     // Randomly update steps (increment by 5-15 steps every second)
     steps.value += Math.floor(Math.random() * 10) + 5;
 
@@ -60,34 +61,37 @@ const startMockStepData = (): void => {
 
 // Stop mock data generation
 const stopMockStepData = (): void => {
-  if (mockDataInterval) {
-    clearInterval(mockDataInterval);
-    mockDataInterval = null;
+  if (mockStepDataInterval) {
+    clearInterval(mockStepDataInterval);
+    mockStepDataInterval = null;
     console.log('Stopped mock data generation');
   }
 };
 
 const startMockHeartData = (): void => {
-  if (mockDataInterval) clearInterval(mockDataInterval);
+  if (mockHeartDataInterval) clearInterval(mockHeartDataInterval);
 
   console.log('Starting mock step data generation');
   // Initial values
   heartRate.value = 65;
   connectionState.value = 'connected';
 
-  mockDataInterval = window.setInterval(() => {
-    // Randomly fluctuate heartRate between 60 and 120
-    heartRate.value = parseFloat((60 + Math.random() * 60).toFixed(1));
+  mockHeartDataInterval = window.setInterval(() => {
+    // Randomly fluctuate heartRate between 60 and 180
+    if(heartRate.value >= 175)
+      heartRate.value = 60
+    else
+      heartRate.value += 5
 
     console.log(`Mock data updated: ${heartRate.value} bpm`);
-  }, 1000);
+  }, 500);
 };
 
 // Stop mock data generation
 const stopMockHeartData = (): void => {
-  if (mockDataInterval) {
-    clearInterval(mockDataInterval);
-    mockDataInterval = null;
+  if (mockHeartDataInterval) {
+    clearInterval(mockHeartDataInterval);
+    mockHeartDataInterval = null;
     console.log('Stopped mock data generation');
   }
 };
@@ -146,9 +150,9 @@ const connectToHA = (): void => {
       if (speedData !== 'unavailable' && typeof speedData === 'number') {
         speed.value = speedData;
       }
-      const heartData = eventData['sensor.sm_s921b_heart_rate']?.s;
+      const heartData = eventData['sensor.galaxy_watch5_rrry_heart_rate']?.s;
       if (heartData !== 'unavailable' && typeof heartData === 'number') {
-        heartRate.value = speedData;
+        heartRate.value = heartData;
       }
 
       brbEnabled.value = eventData['input_boolean.janis_vco_brb']?.s === 'on';
@@ -179,8 +183,8 @@ const connectToHA = (): void => {
         brbEnabled.value = eventData['input_boolean.janis_vco_brb']['+']?.s === 'on';
       } else if (eventData['input_boolean.janis_vco_heart']) {
         heartEnabled.value = eventData['input_boolean.janis_vco_heart']['+']?.s === 'on';
-      } else if (eventData['sensor.sm_s921b_heart_rate']) {
-        const newHeart = eventData['sensor.sm_s921b_heart_rate']['+']?.s;
+      } else if (eventData['sensor.galaxy_watch5_rrry_heart_rate']) {
+        const newHeart = eventData['sensor.galaxy_watch5_rrry_heart_rate']['+']?.s;
         if (typeof newHeart === 'number') {
           heartRate.value = newHeart;
         } else if (typeof newHeart === 'string') {
@@ -210,7 +214,7 @@ const subscribeToEntities = (): void => {
     'sensor.ksmb_v1_7aed_current_distance',
     'number.ksmb_v1_7aed_speed_level',
     'input_boolean.janis_vco_brb',
-    'sensor.sm_s921b_heart_rate',
+    'sensor.galaxy_watch5_rrry_heart_rate',
     'input_boolean.janis_vco_heart',
   ];
 
