@@ -96,8 +96,10 @@ const connectToHA = (): void => {
   if (socket) return;
   // Use different URLs for development and production
   const isDev: boolean = import.meta.env.DEV as boolean;
+  const protocol: string = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const host: string = isDev ? devHost : window.location.hostname;
-  const url: string = `ws://${host}:${port}/api/websocket`;
+  const url: string = `${protocol}//${host}:${port}/api/websocket`;
+
   console.log(
     `Connecting to Home Assistant at ${url} (${isDev ? 'development' : 'production'} mode)`
   );

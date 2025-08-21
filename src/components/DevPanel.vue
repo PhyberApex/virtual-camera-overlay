@@ -83,16 +83,11 @@ const {
   setHeartEnabled,
 } = useHomeAssistant(true);
 
-const isDevFromEnv: ComputedRef<boolean> = computed(() => import.meta.env.DEV as boolean);
-const isDevEnabledInternal: Ref<boolean> = ref(false);
-
-const isDev: ComputedRef<boolean> = computed(
-  () => isDevFromEnv.value && isDevEnabledInternal.value
-);
+const isDev: Ref<boolean> = ref(false);
 
 // Register keyboard shortcut to toggle dev panel
 onKeyStroke('u', () => {
-  isDevEnabledInternal.value = !isDevEnabledInternal.value;
+  isDev.value = !isDev.value;
 });
 
 interface ConnectionClassMap {
