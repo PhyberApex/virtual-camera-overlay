@@ -66,9 +66,9 @@ const getHeartRateClass = (): string => {
 const getBloodDropCount = (): number => {
   if (!heartRate.value) return 0;
   const bpm = heartRate.value;
-  if (bpm < 100) return 0;
-  if (bpm < 120) return 3;
-  if (bpm < 130) return 5;
+  if (bpm < 120) return 0;
+  if (bpm < 130) return 3;
+  if (bpm < 140) return 5;
   return 8;
 };
 
