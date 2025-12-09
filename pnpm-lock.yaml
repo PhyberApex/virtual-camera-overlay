@@ -13,7 +13,7 @@ importers:
         version: 14.1.0(vue@3.5.25(typescript@5.9.3))
       gsap:
         specifier: ^3.12.7
-        version: 3.13.0
+        version: 3.14.1
       vue:
         specifier: ^3.5.13
         version: 3.5.25(typescript@5.9.3)
@@ -1567,8 +1567,8 @@ packages:
   graphemer@1.4.0:
     resolution: {integrity: sha512-EtKwoO6kxCL9WO5xipiHTZlSzBm7WLT627TqC/uVRd0HKmq8NXyebnNYxDoBi7wt8eTWrUrKXCOVaFq9x1kgag==}
 
-  gsap@3.13.0:
-    resolution: {integrity: sha512-QL7MJ2WMjm1PHWsoFrAQH/J8wUeqZvMtHO58qdekHpCfhvhSL4gSiz6vJf5EeMP0LOn3ZCprL2ki/gjED8ghVw==}
+  gsap@3.14.1:
+    resolution: {integrity: sha512-nOFRJpVu+U0IPgKzfC5MEdZrJ1iVidGaOuxK0+Un+7vMOHa5rw/SKOaMaRRyHZiJKaeAEALTBwnj6R3gifyGBw==}
 
   has-bigints@1.1.0:
     resolution: {integrity: sha512-R3pbpkcIqv2Pm3dUwgjclDRVmWpTJW2DcMzcIhEXEx1oh/CEMObMm3KLmRJOdvhM7o4uQBnwr8pzRK2sJWIqfg==}
@@ -4146,7 +4146,7 @@ snapshots:
 
   graphemer@1.4.0: {}
 
-  gsap@3.13.0: {}
+  gsap@3.14.1: {}
 
   has-bigints@1.1.0: {}
 
