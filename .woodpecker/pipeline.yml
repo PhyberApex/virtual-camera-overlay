@@ -27,6 +27,8 @@ steps:
     environment:
       HA_TOKEN:
         from_secret: ha_token
+    volumes:
+      - /mnt/homeassistant/overlay:~/mount
     commands:
       - apk add --no-cache sed
       - cd dist
