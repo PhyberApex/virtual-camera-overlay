@@ -1,0 +1,37 @@
+when:
+  branch: main
+
+labels:
+  pi: true
+
+steps:
+  - name: build-test-lint
+    image: node:24
+    volumes:
+      - name: pnpm-store
+        path: /root/.local/share/pnpm/store
+    commands:
+      - corepack enable
+      - corepack prepare pnpm@10 --activate
+      - pnpm install --frozen-lockfile
+      - pnpm lint
+      - pnpm test:coverage
+      - cp .env.example .env || true
+      - pnpm build
+    artifacts:
+      - coverage/
+      - dist/
+
+  - name: deploy
+    image: alpine:latest
+    environment:
+      HA_TOKEN:
+        from_secret: ha_token
+    commands:
+      - apk add --no-cache sed
+      - cd dist
+      - sed -i "s|your_long_lived_access_token_here|${HA_TOKEN}|g" assets/index-*.js || true
+      - rm -rf ~/mount/*
+      - cp -R . ~/mount/
+    when:
+      - event: push
