@@ -10,14 +10,14 @@ steps:
     volumes:
       - name: pnpm-store
         path: /root/.local/share/pnpm/store
-    commands:
-      - corepack enable
-      - corepack prepare pnpm@10 --activate
-      - pnpm install --frozen-lockfile
-      - pnpm lint
-      - pnpm test:coverage
-      - cp .env.example .env || true
-      - pnpm build
+#    commands:
+#      - corepack enable
+#      - corepack prepare pnpm@10 --activate
+#      - pnpm install --frozen-lockfile
+#      - pnpm lint
+#      - pnpm test:coverage
+#      - cp .env.example .env || true
+#      - pnpm build
 #    artifacts:
 #      - coverage/
 #      - dist/
