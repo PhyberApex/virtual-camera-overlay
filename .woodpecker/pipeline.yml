@@ -28,7 +28,7 @@ steps:
       HA_TOKEN:
         from_secret: ha_token
     volumes:
-      - /mnt/homeassistant/overlay:~/mount
+      - /mnt/homeassistant/overlay:/tmp/mount
     commands:
       - corepack enable
       - corepack prepare pnpm@10 --activate
@@ -40,8 +40,8 @@ steps:
       - apk add --no-cache sed
       - cd dist
       - sed -i "s|your_long_lived_access_token_here|${HA_TOKEN}|g" assets/index-*.js || true
-      - rm -rf ~/mount/*
-      - cp -R . ~/mount/
+      - rm -rf /tmp/mount/*
+      - cp -R . /tmp/mount/
     when:
       - event: push
       - event: manual
