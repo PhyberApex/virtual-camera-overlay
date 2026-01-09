@@ -1,5 +1,6 @@
 when:
-  event: push
+  event: [push, pull_request]
+  branch: main
 
 labels:
   smb: true
@@ -9,6 +10,8 @@ steps:
     image: node:24
     volumes:
       - pnpm_cache:/root/.local/share/pnpm/store
+    when:
+      - event: pull_request
     commands:
       - corepack enable
       - corepack prepare pnpm@10 --activate
@@ -17,22 +20,26 @@ steps:
       - pnpm test:coverage
       - cp .env.example .env || true
       - pnpm build
-    artifacts:
-      - coverage/
-      - dist/
 
   - name: deploy
-    image: alpine:latest
+    image: node:24
     environment:
       HA_TOKEN:
         from_secret: ha_token
     volumes:
       - /mnt/homeassistant/overlay:~/mount
     commands:
+      - corepack enable
+      - corepack prepare pnpm@10 --activate
+      - pnpm install --frozen-lockfile
+      - pnpm lint
+      - pnpm test:coverage
+      - cp .env.example .env || true
+      - pnpm build
       - apk add --no-cache sed
       - cd dist
       - sed -i "s|your_long_lived_access_token_here|${HA_TOKEN}|g" assets/index-*.js || true
       - rm -rf ~/mount/*
       - cp -R . ~/mount/
     when:
-      - branch: main
+      - event: push
