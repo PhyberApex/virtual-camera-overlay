@@ -1,6 +1,5 @@
 when:
-  branch: main
-  event: push, pull_request
+  event: push
 
 labels:
   smb: true
@@ -36,4 +35,4 @@ steps:
       - rm -rf ~/mount/*
       - cp -R . ~/mount/
     when:
-      - event: push
+      - branch: main
