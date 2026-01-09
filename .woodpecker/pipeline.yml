@@ -7,7 +7,8 @@ labels:
 steps:
   - name: build-test-lint
     image: node:24
-    volumes: pnpm_cache:/root/.local/share/pnpm/store
+    volumes:
+      - pnpm_cache:/root/.local/share/pnpm/store
     commands:
       - corepack enable
       - corepack prepare pnpm@10 --activate
