@@ -2,7 +2,7 @@ when:
   branch: main
 
 labels:
-  pi: true
+  smb: true
 
 steps:
   - name: build-test-lint
