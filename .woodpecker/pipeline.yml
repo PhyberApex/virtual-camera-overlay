@@ -37,7 +37,6 @@ steps:
       - pnpm test:coverage
       - cp .env.example .env || true
       - pnpm build
-      - apk add --no-cache sed
       - cd dist
       - sed -i "s|your_long_lived_access_token_here|${HA_TOKEN}|g" assets/index-*.js || true
       - rm -rf /tmp/mount/*
