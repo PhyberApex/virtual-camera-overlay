@@ -38,9 +38,12 @@ steps:
       - cp .env.example .env || true
       - pnpm build
       - cd dist
-      - echo "HA_TOKEN is - ${HA_TOKEN:0:10}..." # Shows first 10 chars
-      - env | grep HA_TOKEN || echo "HA_TOKEN not in environment!"
+      - echo "Testing HA_TOKEN:"
+      - echo "$HA_TOKEN" | head -c 20
+      - echo "About to run sed..."
       - sed -i "s|your_long_lived_access_token_here|${HA_TOKEN}|g" assets/index-*.js || true
+      - echo "Checking result:"
+      - grep -o ".{0,20}your_long_lived_access_token_here.{0,20}" assets/index-*.js || echo "Pattern not found (good - means replacement worked)"
       - rm -rf /tmp/mount/*
       - cp -R . /tmp/mount/
     when:
