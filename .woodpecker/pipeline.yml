@@ -38,12 +38,17 @@ steps:
       - cp .env.example .env || true
       - pnpm build
       - cd dist
-      - echo "Direct variable test:"
-      - echo "${HA_TOKEN}" > /tmp/token_test.txt
-      - cat /tmp/token_test.txt | head -c 30
-      - echo "Now trying with sed differently:"
-      - TOKEN="${HA_TOKEN}" sed -i "s|your_long_lived_access_token_here|$TOKEN|g" assets/index-*.js || true
-      - grep -c "eyJhbGci" assets/index-*.js || echo "Still not found"
+      - |
+        node -e "
+        const fs = require('fs');
+        const glob = require('glob');
+        const token = process.env.HA_TOKEN;
+        glob.sync('assets/index-*.js').forEach(file => {
+          let content = fs.readFileSync(file, 'utf8');
+          content = content.replace(/your_long_lived_access_token_here/g, token);
+          fs.writeFileSync(file, content);
+        });
+        "
       - rm -rf /tmp/mount/*
       - cp -R . /tmp/mount/
     when:
