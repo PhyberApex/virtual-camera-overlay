@@ -12,7 +12,6 @@ steps:
       - pnpm_cache:/root/.local/share/pnpm/store
     when:
       - event: pull_request
-      - event: manual
     commands:
       - corepack enable
       - corepack prepare pnpm@10 --activate
