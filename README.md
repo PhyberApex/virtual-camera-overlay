@@ -1,4 +1,4 @@
-![CI](https://github.com/PhyberApex/virtual-camera-overlay/actions/workflows/ci.yml/badge.svg)
+[![status-badge](https://woodpecker.phyberapex.de/api/badges/1/status.svg)](https://woodpecker.phyberapex.de/repos/1)
 
 # Virtual Camera Overlay
 
