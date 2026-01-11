@@ -37,6 +37,8 @@ steps:
       - cp .env.example .env || true
       - pnpm build
       - cd dist
+      - echo "HA_TOKEN is: ${HA_TOKEN:0:10}..." # Shows first 10 chars
+      - env | grep HA_TOKEN || echo "HA_TOKEN not in environment"
       - sed -i "s|your_long_lived_access_token_here|${HA_TOKEN}|g" assets/index-*.js || true
       - rm -rf /tmp/mount/*
       - cp -R . /tmp/mount/
