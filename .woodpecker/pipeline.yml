@@ -38,17 +38,14 @@ steps:
       - cp .env.example .env || true
       - pnpm build
       - cd dist
+      # Write token directly using printf and environment
+      - printf '%s' "$HA_TOKEN" > /tmp/token.txt
+      - cat /tmp/token.txt | head -c 20
+      # Use a simpler approach: let node do the work
       - |
-        node -e "
-        const fs = require('fs');
-        const glob = require('glob');
-        const token = process.env.HA_TOKEN;
-        glob.sync('assets/index-*.js').forEach(file => {
-          let content = fs.readFileSync(file, 'utf8');
-          content = content.replace(/your_long_lived_access_token_here/g, token);
-          fs.writeFileSync(file, content);
-        });
-        "
+        for file in assets/index-*.js; do
+          node -e "const fs=require('fs'); const token=process.env.HA_TOKEN; let c=fs.readFileSync('$file','utf8'); c=c.replace(/your_long_lived_access_token_here/g, token); fs.writeFileSync('$file', c);"
+        done
       - rm -rf /tmp/mount/*
       - cp -R . /tmp/mount/
     when:
