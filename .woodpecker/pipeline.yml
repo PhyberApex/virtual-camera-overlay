@@ -27,6 +27,7 @@ steps:
       HA_TOKEN:
         from_secret: ha_token
     volumes:
+      - pnpm_cache:/root/.local/share/pnpm/store
       - /mnt/homeassistant/overlay:/tmp/mount
     commands:
       - corepack enable
