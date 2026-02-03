@@ -40,14 +40,6 @@ steps:
       - cp .env.example .env || true
       - pnpm build
       - cd dist
-      - printf '%s' "$HA_TOKEN" > /tmp/token.txt
-      - cat /tmp/token.txt | head -c 20
-      - printf '%s' "$SMB_SHARE" > /tmp/token.txt
-      - cat /tmp/token.txt | head -c 20
-      - printf '%s' "$SMB_USER" > /tmp/token.txt
-      - cat /tmp/token.txt | head -c 20
-      - printf '%s' "$SMB_PASS" > /tmp/token.txt
-      - cat /tmp/token.txt | head -c 20
       - |
         for file in assets/index-*.js; do
           node -e "const fs=require('fs'); const token=process.env.HA_TOKEN; let c=fs.readFileSync('$file','utf8'); c=c.replace(/your_long_lived_access_token_here/g, token); fs.writeFileSync('$file', c);"
@@ -57,8 +49,8 @@ steps:
       - apt-get update && apt-get install -y smbclient
 
       # Delete all files and directories recursively, then upload
-      - smbclient //$SMB_SHARE -U "$SMB_USER%$SMB_PASS" -c 'prompt OFF; recurse ON; del *'
-      - smbclient //$SMB_SHARE -U "$SMB_USER%$SMB_PASS" -c 'prompt OFF; recurse ON; mput *'
+      - smbclient //$${SMB_SHARE} -U "$${SMB_USER%}$${SMB_PASS}" -c 'prompt OFF; recurse ON; del *'
+      - smbclient //$${SMB_SHARE} -U "$${SMB_USER%}$${SMB_PASS}" -c 'prompt OFF; recurse ON; mput *'
     when:
       - event: push
       - event: manual
