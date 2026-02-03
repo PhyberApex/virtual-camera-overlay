@@ -2,9 +2,6 @@ when:
   event: [push, pull_request, manual]
   branch: main
 
-labels:
-  smb: true
-
 steps:
   - name: build-test-lint
     image: node:24
@@ -26,9 +23,14 @@ steps:
     environment:
       HA_TOKEN:
         from_secret: ha_token
+      SMB_SHARE:
+        from_secret: smb_share
+      SMB_USER:
+        from_secret: smb_user
+      SMB_PASS:
+        from_secret: smb_password
     volumes:
       - pnpm_cache:/root/.local/share/pnpm/store
-      - /mnt/homeassistant/overlay:/tmp/mount
     commands:
       - corepack enable
       - corepack prepare pnpm@10 --activate
@@ -38,16 +40,17 @@ steps:
       - cp .env.example .env || true
       - pnpm build
       - cd dist
-      # Write token directly using printf and environment
-      - printf '%s' "$HA_TOKEN" > /tmp/token.txt
-      - cat /tmp/token.txt | head -c 20
-      # Use a simpler approach: let node do the work
       - |
         for file in assets/index-*.js; do
           node -e "const fs=require('fs'); const token=process.env.HA_TOKEN; let c=fs.readFileSync('$file','utf8'); c=c.replace(/your_long_lived_access_token_here/g, token); fs.writeFileSync('$file', c);"
         done
-      - rm -rf /tmp/mount/*
-      - cp -R . /tmp/mount/
+
+      # Install smbclient
+      - apt-get update && apt-get install -y smbclient
+
+      # Delete all files and directories recursively, then upload
+      - smbclient //$SMB_SHARE -U "$SMB_USER%$SMB_PASS" -c 'prompt OFF; recurse ON; del *'
+      - smbclient //$SMB_SHARE -U "$SMB_USER%$SMB_PASS" -c 'prompt OFF; recurse ON; mput *'
     when:
       - event: push
       - event: manual
