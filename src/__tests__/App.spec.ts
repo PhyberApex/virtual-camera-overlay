@@ -4,11 +4,23 @@ import App from '../App.vue';
 import { nextTick, ref } from 'vue';
 
 const connectionState = ref('disconnected');
+const brbEnabled = ref(false);
+const heartEnabled = ref(false);
+const heartRate = ref(70);
+const steps = ref(0);
+const speed = ref(0);
+const distance = ref(0);
 
 // Mock the homeAssistant composable
 vi.mock('../composables/useHomeAssistant', () => ({
   useHomeAssistant: () => ({
     connectionState,
+    brbEnabled,
+    heartEnabled,
+    heartRate,
+    steps,
+    speed,
+    distance,
   }),
 }));
 
