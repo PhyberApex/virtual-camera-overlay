@@ -29,3 +29,7 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Runtime config injected during build
+public/app-config.json
+

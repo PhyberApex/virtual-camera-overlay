@@ -36,11 +36,10 @@ This application connects to a Home Assistant instance via WebSockets and displa
 2. Install dependencies:
 
    ```bash
-   npm install
+   pnpm install
    ```
 
 3. Configure environment variables:
-
    - Copy the example environment file:
      ```bash
      cp .env.example .env
@@ -55,12 +54,12 @@ This application connects to a Home Assistant instance via WebSockets and displa
 4. Start the development server:
 
    ```bash
-   npm run dev
+   pnpm dev
    ```
 
 5. Build for production:
    ```bash
-   npm run build
+   pnpm build
    ```
 
 ### OBS Studio Integration
@@ -69,7 +68,6 @@ This application connects to a Home Assistant instance via WebSockets and displa
 2. For local development:
    - Use the URL provided by the Vite dev server (typically http://localhost:5173/)
 3. For production:
-
    - Host the built files on a web server and use that URL
    - Or use the "Local File" option and point to the index.html in your dist folder
 
@@ -95,11 +93,26 @@ body {
 | ------------------ | -------------------------------------- | ------------ |
 | `VITE_HA_TOKEN`    | Home Assistant long-lived access token | -            |
 | `VITE_HA_DEV_HOST` | Host IP/domain for development         | 192.168.0.13 |
-| `VITE_HA_PORT`     | Port for Home Assistant                | 8123         |
+| `VITE_HA_DEV_PORT` | Dev server websocket port              | 8123         |
+| `VITE_HA_PORT`     | Port for Home Assistant (prod)         | 8123         |
+
+### Runtime token configuration
+
+For production builds the overlay now reads `app-config.json` at runtime.
+Create `public/app-config.json` (or copy `public/app-config.example.json`) with:
+
+```json
+{
+  "haToken": "your_long_lived_access_token_here"
+}
+```
+
+When deploying via Woodpecker the pipeline writes this file automatically using the `HA_TOKEN` secret.
+If the file is missing, the overlay falls back to the compile-time `VITE_HA_TOKEN` env variable (useful for local dev).
 
 ### Development Mode
 
-When in development mode (`npm run dev`), you can:
+When in development mode (`pnpm dev`), you can:
 
 **Development Panel**: A control panel will appear in the top-left corner of the screen during development. It allows you to:
 
