@@ -20,7 +20,11 @@ interface HAEventMessage {
   };
 }
 
-type HAMessage = HAAuthRequiredMessage | HAAuthOkMessage | HAEventMessage;
+interface HAPongMessage {
+  type: 'pong';
+}
+
+type HAMessage = HAAuthRequiredMessage | HAAuthOkMessage | HAEventMessage | HAPongMessage;
 
 const steps: Ref<number> = ref(0);
 const speed: Ref<number> = ref(0);
@@ -28,15 +32,120 @@ const distance: Ref<number> = ref(0);
 const connectionState: Ref<ConnectionState> = ref('disconnected');
 const brbEnabled: Ref<boolean> = ref(false);
 const heartEnabled: Ref<boolean> = ref(false);
-const heartRate: Ref<number> = ref(70)
+const heartRate: Ref<number> = ref(70);
+
+const RECONNECT_BASE_DELAY = 2_000;
+const RECONNECT_MAX_DELAY = 30_000;
+const HEARTBEAT_INTERVAL = 30_000;
+const HEARTBEAT_MISSES_ALLOWED = 2;
 
 let socket: WebSocket | null = null;
 let msgId: number = 1;
+let reconnectAttempts = 0;
+let reconnectTimer: number | null = null;
+let heartbeatTimer: number | null = null;
+let missedHeartbeats = 0;
 let mockStepDataInterval: number | null = null;
 let mockHeartDataInterval: number | null = null;
 const token: string = import.meta.env.VITE_HA_TOKEN as string;
 const devHost: string = import.meta.env.VITE_HA_DEV_HOST as string;
 const devPort: string = import.meta.env.VITE_HA_DEV_PORT as string;
+
+const clearTimeoutSafe = (id: number | null): void => {
+  if (id !== null) {
+    window.clearTimeout(id);
+  }
+};
+
+const clearIntervalSafe = (id: number | null): void => {
+  if (id !== null) {
+    window.clearInterval(id);
+  }
+};
+
+const resetHeartbeat = (): void => {
+  clearIntervalSafe(heartbeatTimer);
+  heartbeatTimer = null;
+  missedHeartbeats = 0;
+};
+
+const resetReconnectTimer = (): void => {
+  clearTimeoutSafe(reconnectTimer);
+  reconnectTimer = null;
+};
+
+const scheduleReconnect = (): void => {
+  if (reconnectTimer || connectionState.value === 'authenticating') return;
+  const delay = Math.min(
+    RECONNECT_BASE_DELAY * Math.pow(2, reconnectAttempts),
+    RECONNECT_MAX_DELAY
+  );
+  reconnectTimer = window.setTimeout(() => {
+    reconnectTimer = null;
+    reconnectAttempts += 1;
+    connectToHA(true);
+  }, delay);
+};
+
+const startHeartbeat = (): void => {
+  resetHeartbeat();
+  heartbeatTimer = window.setInterval(() => {
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    try {
+      socket.send(JSON.stringify({ type: 'ping' }));
+      missedHeartbeats += 1;
+      if (missedHeartbeats > HEARTBEAT_MISSES_ALLOWED) {
+        console.warn('[HomeAssistant] Missed heartbeats, forcing reconnect');
+        forceReconnect();
+      }
+    } catch (error) {
+      console.error('[HomeAssistant] Failed to send heartbeat', error);
+      forceReconnect();
+    }
+  }, HEARTBEAT_INTERVAL);
+};
+
+const forceReconnect = (): void => {
+  resetHeartbeat();
+  resetReconnectTimer();
+  if (socket) {
+    socket.close();
+    socket = null;
+  }
+  connectionState.value = 'disconnected';
+
+  scheduleReconnect();
+};
+
+const updateAuthenticatedState = (): void => {
+  reconnectAttempts = 0;
+  missedHeartbeats = 0;
+  resetReconnectTimer();
+  startHeartbeat();
+};
+
+const cleanupSocket = (): void => {
+  if (socket) {
+    socket.onopen = null;
+    socket.onclose = null;
+    socket.onerror = null;
+    socket.onmessage = null;
+    socket.close();
+    socket = null;
+  }
+
+  resetHeartbeat();
+  resetReconnectTimer();
+};
+
+const handleConnectionDrop = (): void => {
+  console.warn('[HomeAssistant] Connection dropped, scheduling reconnect');
+  cleanupSocket();
+  connectionState.value = 'disconnected';
+  scheduleReconnect();
+};
 
 // Generate mock data for development
 const startMockStepData = (): void => {
@@ -96,7 +205,7 @@ const stopMockHeartData = (): void => {
   }
 };
 
-const connectToHA = (): void => {
+const connectToHA = (isReconnect = false): void => {
   if (socket) return;
   // Use different URLs for development and production
   const isDev: boolean = import.meta.env.DEV as boolean;
@@ -105,19 +214,37 @@ const connectToHA = (): void => {
   const port: string = isDev ? devPort : window.location.port;
   const url: string = `${protocol}//${host}:${port}/api/websocket`;
 
+  if (!isReconnect) {
+    reconnectAttempts = 0;
+  }
+
   console.log(
     `Connecting to Home Assistant at ${url} (${isDev ? 'development' : 'production'} mode)`
   );
+  connectionState.value = 'authenticating';
   socket = new WebSocket(url);
 
   socket.onopen = (): void => {
-    connectionState.value = 'authenticating';
     console.log('WebSocket connection established, authenticating...');
+  };
+
+  socket.onerror = (error): void => {
+    console.error('[HomeAssistant] WebSocket error', error);
+    handleConnectionDrop();
+  };
+
+  socket.onclose = (): void => {
+    handleConnectionDrop();
   };
 
   socket.onmessage = (event: MessageEvent): void => {
     const message: HAMessage = JSON.parse(event.data);
     console.log('Received message:', message);
+
+    if ((message as { type: string }).type === 'pong') {
+      missedHeartbeats = 0;
+      return;
+    }
 
     // Handle authentication
     if (message.type === 'auth_required') {
@@ -128,6 +255,7 @@ const connectToHA = (): void => {
         })
       );
     } else if (message.type === 'auth_ok') {
+      updateAuthenticatedState();
       connectionState.value = 'connected';
       console.log('Authentication successful');
 
@@ -195,17 +323,6 @@ const connectToHA = (): void => {
     }
   };
 
-  socket.onclose = (): void => {
-    connectionState.value = 'disconnected';
-    console.log('WebSocket connection closed');
-    // Try to reconnect after a delay
-    setTimeout(connectToHA, 5000);
-  };
-
-  socket.onerror = (error: Event): void => {
-    console.error('WebSocket error:', error);
-    socket?.close();
-  };
 };
 
 // Subscribe to entity state changes
@@ -263,9 +380,7 @@ export function useHomeAssistant(isDevPanel: boolean = false): HomeAssistantRetu
   });
 
   onUnmounted(() => {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.close();
-    }
+    cleanupSocket();
     stopMockStepData();
     stopMockHeartData();
   });
