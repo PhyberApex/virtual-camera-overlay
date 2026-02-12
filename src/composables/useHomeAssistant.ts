@@ -1,4 +1,5 @@
 import { onMounted, onUnmounted, readonly, ref, type Ref } from 'vue';
+import { getHaToken } from './useRuntimeConfig';
 
 // Define types for the state
 type ConnectionState = 'disconnected' | 'authenticating' | 'connected';
@@ -47,7 +48,6 @@ let heartbeatTimer: number | null = null;
 let missedHeartbeats = 0;
 let mockStepDataInterval: number | null = null;
 let mockHeartDataInterval: number | null = null;
-const token: string = import.meta.env.VITE_HA_TOKEN as string;
 const devHost: string = import.meta.env.VITE_HA_DEV_HOST as string;
 const devPort: string = import.meta.env.VITE_HA_DEV_PORT as string;
 
@@ -205,6 +205,12 @@ const stopMockHeartData = (): void => {
   }
 };
 
+const handleMissingToken = (): void => {
+  console.error('[HomeAssistant] Missing Home Assistant token. Aborting connection.');
+  connectionState.value = 'disconnected';
+  socket?.close();
+};
+
 const connectToHA = (isReconnect = false): void => {
   if (socket) return;
   // Use different URLs for development and production
@@ -237,7 +243,7 @@ const connectToHA = (isReconnect = false): void => {
     handleConnectionDrop();
   };
 
-  socket.onmessage = (event: MessageEvent): void => {
+  socket.onmessage = async (event: MessageEvent): Promise<void> => {
     const message: HAMessage = JSON.parse(event.data);
     console.log('Received message:', message);
 
@@ -248,10 +254,15 @@ const connectToHA = (isReconnect = false): void => {
 
     // Handle authentication
     if (message.type === 'auth_required') {
+      const accessToken = await getHaToken();
+      if (!accessToken) {
+        handleMissingToken();
+        return;
+      }
       socket?.send(
         JSON.stringify({
           type: 'auth',
-          access_token: token,
+          access_token: accessToken,
         })
       );
     } else if (message.type === 'auth_ok') {
@@ -322,8 +333,8 @@ const connectToHA = (isReconnect = false): void => {
       }
     }
   };
-
 };
+
 
 // Subscribe to entity state changes
 const subscribeToEntities = (): void => {
