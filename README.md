@@ -20,7 +20,7 @@ This application connects to a Home Assistant instance via WebSockets and displa
 
 ### Prerequisites
 
-- Node.js 16+ and npm
+- Node.js 18+ and npm
 - Home Assistant instance with long-lived access token
 - OBS Studio (for streaming/recording)
 
