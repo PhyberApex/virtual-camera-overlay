@@ -39,7 +39,7 @@ steps:
       - pnpm test:coverage
       - cp .env.example .env || true
       - pnpm build
-      - printf '{\n  "haToken": "%s"\n}\n' "$HA_TOKEN" > dist/app-config.json
+      - printf '{"haToken":"%s"}' "$HA_TOKEN" > dist/app-config.json
       - cd dist
       # Install smbclient
       - apt-get update && apt-get install -y smbclient
