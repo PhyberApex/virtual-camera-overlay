@@ -1,86 +1,87 @@
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useWidgetManager } from './composables/useWidgetManager'
+import WidgetTemperature from './components/WidgetTemperature.vue'
+import WidgetSensor from './components/WidgetSensor.vue'
+
+const { addWidget } = useWidgetManager()
+
+// Example widgets to demonstrate the system
+const exampleWidgets = [
+  {
+    id: 'temp-living-room',
+    type: 'temperature',
+    position: { x: 50, y: 50 },
+    size: { width: 150, height: 100 },
+    props: {
+      entityId: 'sensor.living_room_temperature',
+      unit: '°C'
+    }
+  },
+  {
+    id: 'humidity-living-room',
+    type: 'sensor',
+    position: { x: 220, y: 50 },
+    size: { width: 150, height: 100 },
+    props: {
+      entityId: 'sensor.living_room_humidity',
+      unit: '%',
+      displayName: 'Humidity'
+    }
+  }
+]
+
+onMounted(() => {
+  // Add example widgets when the app mounts
+  exampleWidgets.forEach(widget => {
+    addWidget(widget)
+  })
+})
+</script>
+
 <template>
-  <div>
-    <!-- Development panel (only visible in dev mode) -->
-    <DevPanel />
-
-    <!-- Connection status indicator that only shows when disconnected -->
-    <div
-      v-if="connectionState !== 'connected'"
-      class="fixed top-2 right-2 px-2 py-1 rounded text-xs"
-      :class="connectionIndicatorClass"
-    >
-      {{ connectionStatus }}
+  <div class="app-container">
+    <h1>Virtual Camera Overlay - Widget System</h1>
+    <p>This demo shows the widget system for displaying HomeAssistant data.</p>
+    
+    <!-- Placeholder for widgets to be rendered by the manager -->
+    <div class="widgets-container">
+      <WidgetTemperature 
+        v-for="widget in exampleWidgets.filter(w => w.type === 'temperature')"
+        :key="widget.id"
+        :id="widget.id"
+        :position="widget.position"
+        :size="widget.size"
+        :entity-id="widget.props.entityId"
+        :unit="widget.props.unit"
+      />
+      
+      <WidgetSensor 
+        v-for="widget in exampleWidgets.filter(w => w.type === 'sensor')"
+        :key="widget.id"
+        :id="widget.id"
+        :position="widget.position"
+        :size="widget.size"
+        :entity-id="widget.props.entityId"
+        :unit="widget.props.unit"
+        :display-name="widget.props.displayName"
+      />
     </div>
-
-    <!-- Main overlay content -->
-    <StepsDisplay />
-    <BeRightBack
-      :image-urls="[
-        'rain/janiswow.png',
-        'rain/janiswhy.png',
-        'rain/janisapproved.png',
-        'rain/janisreally.png',
-        'rain/mortyxmas.png',
-      ]"
-    />
-    <HeartRate />
   </div>
 </template>
 
-<script setup lang="ts">
-import { computed, type ComputedRef } from 'vue';
-import StepsDisplay from './components/StepsDisplay.vue';
-import DevPanel from './components/DevPanel.vue';
-import BeRightBack from './components/BeRightBack.vue';
-import HeartRate from './components/HeartRate.vue';
-import { useHomeAssistant } from './composables/useHomeAssistant';
-
-// Get the connection state from the home assistant composable
-const { connectionState } = useHomeAssistant();
-
-// Define types for the status mapping
-interface StatusMap {
-  disconnected: string;
-  authenticating: string;
-  connected: string;
-  [key: string]: string; // Index signature for any other potential state
+<style scoped>
+.app-container {
+  padding: 20px;
+  font-family: Arial, sans-serif;
 }
 
-// Define types for the class mapping
-interface ClassMap {
-  disconnected: string;
-  authenticating: string;
-  connected: string;
-  [key: string]: string; // Index signature for any other potential state
-}
-
-const connectionStatus: ComputedRef<string> = computed(() => {
-  const statuses: StatusMap = {
-    disconnected: 'Disconnected',
-    authenticating: 'Connecting...',
-    connected: 'Connected',
-  };
-  return statuses[connectionState.value] || 'Unknown status';
-});
-
-const connectionIndicatorClass: ComputedRef<string> = computed(() => {
-  const classes: ClassMap = {
-    disconnected: 'bg-red-500 bg-opacity-70 text-white',
-    authenticating: 'bg-yellow-500 bg-opacity-70 text-black',
-    connected: 'bg-green-500 bg-opacity-70 text-white',
-  };
-  return classes[connectionState.value] || 'bg-gray-500 bg-opacity-70 text-white';
-});
-</script>
-
-<style>
-/* Add specific overlay styles */
-#app {
+.widgets-container {
+  position: relative;
   width: 100%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  pointer-events: none; /* Allow clicking through the overlay */
+  height: 500px;
+  border: 1px solid #ccc;
+  margin-top: 20px;
+  background-color: #111;
 }
 </style>
