@@ -6,7 +6,7 @@ A Vue.js-based overlay for displaying fitness tracking data from Home Assistant 
 
 ## Overview
 
-This application connects to a Home Assistant instance via WebSockets and displays real-time step count and speed data from a fitness device. It's specifically designed to be used as a browser source in OBS Studio to enhance stream visuals overlay over your camera.
+This application connects to a Home Assistant instance via WebSockets and displays real-time step count and speed data from a fitness device. It's specifically designed to be used as a browser source in OBS Studio to enhance stream visuals overlay over your camera it will just render a HTML page so you will not be able to see the camera in this overlay.
 
 ## Features
 
