@@ -24,6 +24,11 @@
       ]"
     />
     <HeartRate />
+
+    <!-- Audio effects components -->
+    <AudioVisualizer v-if="audioEffectsEnabled" />
+    <ParticleEffect v-if="audioEffectsEnabled" />
+    <AudioController v-if="audioEffectsEnabled" />
   </div>
 </template>
 
@@ -33,10 +38,13 @@ import StepsDisplay from './components/StepsDisplay.vue';
 import DevPanel from './components/DevPanel.vue';
 import BeRightBack from './components/BeRightBack.vue';
 import HeartRate from './components/HeartRate.vue';
+import AudioVisualizer from './components/audio-effects/AudioVisualizer.vue';
+import ParticleEffect from './components/audio-effects/ParticleEffect.vue';
+import AudioController from './components/audio-effects/AudioController.vue';
 import { useHomeAssistant } from './composables/useHomeAssistant';
 
 // Get the connection state from the home assistant composable
-const { connectionState } = useHomeAssistant();
+const { connectionState, audioEffectsEnabled } = useHomeAssistant();
 
 // Define types for the status mapping
 interface StatusMap {
