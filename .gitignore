@@ -10,6 +10,7 @@ lerna-debug.log*
 coverage/*
 
 node_modules
+.pnpm-store
 dist
 dist-ssr
 *.local
@@ -33,3 +34,4 @@ dist-ssr
 # Runtime config injected during build
 public/app-config.json
 
+.claude/progress.json

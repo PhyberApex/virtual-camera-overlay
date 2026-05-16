@@ -1,61 +1,40 @@
-import { ref } from 'vue'
+import { ref } from 'vue';
 
-// Widget configuration type
-export interface WidgetConfig {
-  id: string
-  type: string
-  position: { x: number; y: number }
-  size: { width: number; height: number }
-  props?: Record<string, any>
-}
-
-// Base widget interface
 export interface Widget {
-  id: string
-  type: string
-  position: { x: number; y: number }
-  size: { width: number; height: number }
-  props?: Record<string, any>
+  id: string;
+  type: string;
+  position: { x: number; y: number };
+  size: { width: number; height: number };
+  props?: Record<string, unknown>;
 }
 
-// Widget manager composable
+const widgets = ref<Widget[]>([]);
+
 export function useWidgetManager() {
-  const widgets = ref<Widget[]>([])
-  
-  // Add a new widget
   const addWidget = (widget: Widget) => {
-    widgets.value.push(widget)
-  }
-  
-  // Remove a widget by ID
+    widgets.value.push(widget);
+  };
+
   const removeWidget = (id: string) => {
-    widgets.value = widgets.value.filter(widget => widget.id !== id)
-  }
-  
-  // Update widget configuration
+    widgets.value = widgets.value.filter(w => w.id !== id);
+  };
+
   const updateWidget = (id: string, updates: Partial<Widget>) => {
-    const index = widgets.value.findIndex(widget => widget.id === id)
+    const index = widgets.value.findIndex(w => w.id === id);
     if (index !== -1) {
-      widgets.value[index] = { ...widgets.value[index], ...updates }
+      widgets.value[index] = { ...widgets.value[index]!, ...updates };
     }
-  }
-  
-  // Get all widgets
-  const getWidgets = () => {
-    return widgets.value
-  }
-  
-  // Clear all widgets
+  };
+
   const clearWidgets = () => {
-    widgets.value = []
-  }
-  
+    widgets.value = [];
+  };
+
   return {
-    widgets: widgets,
+    widgets,
     addWidget,
     removeWidget,
     updateWidget,
-    getWidgets,
-    clearWidgets
-  }
+    clearWidgets,
+  };
 }

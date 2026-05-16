@@ -1,39 +1,23 @@
 <script setup lang="ts">
-import { defineProps, computed } from 'vue'
-import WidgetBase from './WidgetBase.vue'
+import WidgetBase from './WidgetBase.vue';
+import { useHomeAssistant } from '../composables/useHomeAssistant';
 
 const props = defineProps<{
-  id: string
-  position: { x: number; y: number }
-  size: { width: number; height: number }
-  entityId: string
-  unit?: string
-}>()
+  id: string;
+  position: { x: number; y: number };
+  size: { width: number; height: number };
+  entityId: string;
+  unit?: string;
+}>();
 
-// Example temperature data - in a real implementation this would fetch from HomeAssistant
-const temperatureData = computed(() => {
-  return {
-    value: 22.5,
-    unit: props.unit || '°C',
-    entity_id: props.entityId
-  }
-})
-
-// Compute the display text
-const displayText = computed(() => {
-  return `${temperatureData.value.value}${temperatureData.value.unit}`
-})
+const { getEntityState } = useHomeAssistant();
+const displayUnit = props.unit ?? '°C';
 </script>
 
 <template>
-  <WidgetBase 
-    :id="id"
-    type="temperature"
-    :position="position"
-    :size="size"
-  >
+  <WidgetBase :id="id" type="temperature" :position="position" :size="size">
     <div class="widget-temperature">
-      <div class="temperature-value">{{ displayText }}</div>
+      <div class="temperature-value">{{ getEntityState(entityId) }}{{ displayUnit }}</div>
       <div class="temperature-entity">{{ entityId }}</div>
     </div>
   </WidgetBase>

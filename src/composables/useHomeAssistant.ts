@@ -1,5 +1,6 @@
 import { onMounted, onUnmounted, readonly, ref, type Ref } from 'vue';
 import { getHaToken } from './useRuntimeConfig';
+import { useWidgetManager } from './useWidgetManager';
 
 // Define types for the state
 type ConnectionState = 'disconnected' | 'authenticating' | 'connected';
@@ -34,6 +35,7 @@ const connectionState: Ref<ConnectionState> = ref('disconnected');
 const brbEnabled: Ref<boolean> = ref(false);
 const heartEnabled: Ref<boolean> = ref(false);
 const heartRate: Ref<number> = ref(70);
+const entityStates: Ref<Record<string, string | number>> = ref({});
 
 const RECONNECT_BASE_DELAY = 2_000;
 const RECONNECT_MAX_DELAY = 30_000;
@@ -187,10 +189,8 @@ const startMockHeartData = (): void => {
 
   mockHeartDataInterval = window.setInterval(() => {
     // Randomly fluctuate heartRate between 60 and 180
-    if(heartRate.value > 160)
-      heartRate.value = 60
-    else
-      heartRate.value += Math.floor(Math.random() * 8) + 3
+    if (heartRate.value > 160) heartRate.value = 60;
+    else heartRate.value += Math.floor(Math.random() * 8) + 3;
 
     console.log(`Mock data updated: ${heartRate.value} bpm`);
   }, 2000);
@@ -273,9 +273,16 @@ const connectToHA = (isReconnect = false): void => {
       // Subscribe to state changes
       subscribeToEntities();
     }
-    // Initial values
+    // Initial state snapshot
     else if (message.type === 'event' && message.event && message.event.a) {
       const eventData = message.event.a;
+
+      for (const [entityId, state] of Object.entries(eventData)) {
+        if (state.s !== 'unavailable') {
+          entityStates.value[entityId] = state.s;
+        }
+      }
+
       const stepsData = eventData['sensor.ksmb_v1_7aed_current_step_count']?.s;
       if (stepsData !== 'unavailable' && typeof stepsData === 'number') {
         steps.value = stepsData;
@@ -299,6 +306,13 @@ const connectToHA = (isReconnect = false): void => {
       heartEnabled.value = eventData['input_boolean.janis_vco_heart']?.s === 'on';
     } else if (message.type === 'event' && message.event && message.event.c) {
       const eventData = message.event.c;
+
+      for (const [entityId, diff] of Object.entries(eventData)) {
+        const newState = diff['+']?.s;
+        if (newState !== undefined) {
+          entityStates.value[entityId] = newState;
+        }
+      }
 
       if (eventData['sensor.ksmb_v1_7aed_current_step_count']) {
         const newSteps = eventData['sensor.ksmb_v1_7aed_current_step_count']['+']?.s;
@@ -335,16 +349,22 @@ const connectToHA = (isReconnect = false): void => {
   };
 };
 
-
-// Subscribe to entity state changes
 const subscribeToEntities = (): void => {
+  const { widgets } = useWidgetManager();
+  const widgetEntityIds = widgets.value
+    .map(w => w.props?.entityId as string | undefined)
+    .filter((id): id is string => !!id);
+
   const entities: string[] = [
-    'sensor.ksmb_v1_7aed_current_step_count',
-    'sensor.ksmb_v1_7aed_current_distance',
-    'number.ksmb_v1_7aed_speed_level',
-    'input_boolean.janis_vco_brb',
-    'sensor.galaxy_watch5_rrry_heart_rate',
-    'input_boolean.janis_vco_heart',
+    ...new Set([
+      'sensor.ksmb_v1_7aed_current_step_count',
+      'sensor.ksmb_v1_7aed_current_distance',
+      'number.ksmb_v1_7aed_speed_level',
+      'input_boolean.janis_vco_brb',
+      'sensor.galaxy_watch5_rrry_heart_rate',
+      'input_boolean.janis_vco_heart',
+      ...widgetEntityIds,
+    ]),
   ];
 
   socket?.send(
@@ -368,6 +388,9 @@ const setHeartEnabled = (enabled: boolean): void => {
   heartEnabled.value = enabled;
 };
 
+const getEntityState = (entityId: string): string | number | undefined =>
+  entityStates.value[entityId];
+
 interface HomeAssistantReturn {
   steps: Readonly<Ref<number>>;
   distance: Readonly<Ref<number>>;
@@ -376,6 +399,7 @@ interface HomeAssistantReturn {
   brbEnabled: Readonly<Ref<boolean>>;
   heartEnabled: Readonly<Ref<boolean>>;
   heartRate: Readonly<Ref<number>>;
+  getEntityState: (entityId: string) => string | number | undefined;
   startMockStepData?: () => void;
   stopMockStepData?: () => void;
   startMockHeartData?: () => void;
@@ -404,6 +428,7 @@ export function useHomeAssistant(isDevPanel: boolean = false): HomeAssistantRetu
     brbEnabled: readonly(brbEnabled),
     heartEnabled: readonly(heartEnabled),
     heartRate: readonly(heartRate),
+    getEntityState,
     startMockStepData: isDevPanel ? startMockStepData : undefined,
     stopMockStepData: isDevPanel ? stopMockStepData : undefined,
     startMockHeartData: isDevPanel ? startMockHeartData : undefined,

@@ -1,29 +1,21 @@
 <script setup lang="ts">
-import { defineProps, computed } from 'vue'
+import { computed } from 'vue';
 
-// Define props for the base widget component
 const props = defineProps<{
-  id: string
-  type: string
-  position: { x: number; y: number }
-  size: { width: number; height: number }
-  props?: Record<string, any>
-}>()
+  id: string;
+  type: string;
+  position: { x: number; y: number };
+  size: { width: number; height: number };
+}>();
 
-// Compute styles based on position and size
-const style = computed(() => {
-  return {
-    left: `${props.position.x}px`,
-    top: `${props.position.y}px`,
-    width: `${props.size.width}px`,
-    height: `${props.size.height}px`
-  }
-})
+const style = computed(() => ({
+  left: `${props.position.x}px`,
+  top: `${props.position.y}px`,
+  width: `${props.size.width}px`,
+  height: `${props.size.height}px`,
+}));
 
-// Widget name (derived from type)
-const widgetName = computed(() => {
-  return props.type.charAt(0).toUpperCase() + props.type.slice(1)
-})
+const widgetName = computed(() => props.type.charAt(0).toUpperCase() + props.type.slice(1));
 </script>
 
 <template>
