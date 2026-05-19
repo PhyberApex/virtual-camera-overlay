@@ -15,24 +15,11 @@
       ></div>
     </div>
 
-    <!-- Small BPM display -->
+    <!-- Small BPM display with zone indicator -->
     <div class="bpm-display" :class="getHeartRateClass()">
       <div class="bpm-value">{{ heartRate }}</div>
       <div class="bpm-label">BPM</div>
-    </div>
-
-    <!-- Subtle blood drop animation for high heart rates -->
-    <div v-if="heartRate > 100" class="blood-drops">
-      <div
-        v-for="drop in getBloodDropCount()"
-        :key="drop"
-        class="blood-drop"
-        :style="{
-          left: `${Math.random() * 100}%`,
-          animationDelay: `${Math.random() * 2}s`,
-          animationDuration: `${2 + Math.random()}s`,
-        }"
-      ></div>
+      <div class="bpm-zone">{{ getHeartRateZoneName() }}</div>
     </div>
   </div>
 </template>
@@ -62,19 +49,26 @@ const getHeartRateClass = (): string => {
   return 'zone-maximum';
 };
 
-// Calculate blood drop count based on heart rate
-const getBloodDropCount = (): number => {
-  if (!heartRate.value) return 0;
+// REFINED: Get zone name for display (for viewers to understand colors)
+const getHeartRateZoneName = (): string => {
+  if (!heartRate.value) return 'resting';
+
   const bpm = heartRate.value;
-  if (bpm < 120) return 0;
-  if (bpm < 130) return 3;
-  if (bpm < 140) return 5;
-  return 8;
+  if (bpm < 60) return 'resting';
+  if (bpm < 70) return 'normal';
+  if (bpm < 100) return 'active';
+  if (bpm < 120) return 'exercise';
+  if (bpm < 130) return 'intense';
+  return 'maximum';
 };
 
 // Start pulsing border animation
 const startBorderPulse = (): void => {
   if (!screenBorder.value || !heartRate.value) return;
+
+  // Check for reduced motion preference
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersReducedMotion) return;
 
   // Stop existing animation
   if (borderPulseAnimation) borderPulseAnimation.kill();
@@ -164,44 +158,47 @@ onUnmounted(() => {
   transition: border-color 0.3s ease;
 }
 
-/* BPM Display - top left corner */
+/* REFINED: BPM Display - top left corner with zone text */
 .bpm-display {
   position: absolute;
   top: 20px;
   left: 20px;
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(8px);
-  border-radius: 12px;
+  border-radius: var(--radius-widget); /* unified radius */
   padding: 12px 16px;
   border: 2px solid;
   border-color: inherit;
   text-align: center;
-  min-width: 80px;
+  min-width: 90px; /* slightly wider for zone text */
   transition: all 0.3s ease;
 }
 
 .bpm-value {
   font-size: 1.8rem;
-  font-weight: bold;
-  color: white;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums; /* better alignment */
+  color: var(--color-text-primary);
   line-height: 1;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .bpm-label {
   font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-secondary);
   font-weight: 600;
+  letter-spacing: 0.05em; /* refined spacing */
   margin-top: 2px;
 }
 
+/* REFINED: zone name for viewers */
 .bpm-zone {
-  font-size: 0.6rem;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.8);
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-top: 2px;
+  font-variant: small-caps; /* more sophisticated */
+  letter-spacing: 0.08em; /* refined spacing */
+  margin-top: 4px;
 }
 
 /* Pulse waves */
@@ -219,6 +216,14 @@ onUnmounted(() => {
   border-radius: 50%;
   opacity: 0;
   animation: pulseWave 2s ease-out infinite;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-wave {
+    animation: none;
+    display: none;
+  }
 }
 
 @keyframes pulseWave {
@@ -232,82 +237,50 @@ onUnmounted(() => {
   }
 }
 
-/* Blood drops for high heart rate */
-.blood-drops {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  overflow: hidden;
-}
-
-.blood-drop {
-  position: absolute;
-  width: 8px;
-  height: 12px;
-  background: #dc2626;
-  border-radius: 0 0 50% 50%;
-  opacity: 0.6;
-  animation: bloodDrop 3s linear infinite;
-  transform: rotate(10deg);
-}
-
-.blood-drop:before {
-  content: '';
-  position: absolute;
-  top: -4px;
-  left: 2px;
-  width: 4px;
-  height: 4px;
-  background: #dc2626;
-  border-radius: 50%;
-}
-
-@keyframes bloodDrop {
-  0% {
-    top: -20px;
-    opacity: 0;
-  }
-  5% {
-    opacity: 0.6;
-  }
-  100% {
-    top: 100vh;
-    opacity: 0;
-  }
-}
+/* REFINED: removed blood drops - border pulsing is sufficient */
 
 /* Heart rate zone color schemes */
 .zone-resting {
-  border-color: #3b82f6;
-  color: #3b82f6;
+  border-color: var(--color-zone-resting);
+  color: var(--color-zone-resting);
+  border-width: 2px;
 }
 
 .zone-normal {
-  border-color: #10b981;
-  color: #10b981;
+  border-color: var(--color-zone-normal);
+  color: var(--color-zone-normal);
+  border-width: 2px;
 }
 
 .zone-active {
-  border-color: #f59e0b;
-  color: #f59e0b;
+  border-color: var(--color-zone-active);
+  color: var(--color-zone-active);
+  border-width: 3px;
 }
 
 .zone-exercise {
-  border-color: #f97316;
-  color: #f97316;
+  border-color: var(--color-zone-exercise);
+  color: var(--color-zone-exercise);
+  border-width: 3px;
 }
 
 .zone-intense {
-  border-color: #dc2626;
-  color: #dc2626;
+  border-color: var(--color-zone-intense);
+  color: var(--color-zone-intense);
+  border-width: 4px;
 }
 
 .zone-maximum {
-  border-color: #991b1b;
-  color: #991b1b;
+  border-color: var(--color-zone-maximum);
+  color: var(--color-zone-maximum);
+  border-width: 4px;
   animation: dangerPulse 1s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zone-maximum {
+    animation: none;
+  }
 }
 
 @keyframes dangerPulse {
@@ -329,7 +302,7 @@ onUnmounted(() => {
     top: 15px;
     left: 15px;
     padding: 8px 12px;
-    min-width: 70px;
+    min-width: 80px;
   }
 
   .bpm-value {
@@ -340,8 +313,8 @@ onUnmounted(() => {
     font-size: 0.6rem;
   }
 
-  .bmp-zone {
-    font-size: 0.5rem;
+  .bpm-zone {
+    font-size: 0.55rem;
   }
 
   .pulse-waves {
@@ -352,11 +325,6 @@ onUnmounted(() => {
   .pulse-wave {
     width: 16px;
     height: 16px;
-  }
-
-  .blood-drop {
-    width: 6px;
-    height: 10px;
   }
 }
 

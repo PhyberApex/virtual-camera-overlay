@@ -157,6 +157,7 @@ const startMockStepData = (): void => {
   // Initial values
   steps.value = 1250;
   speed.value = 3.5;
+  distance.value = 850;
   connectionState.value = 'connected';
 
   mockStepDataInterval = window.setInterval(() => {
@@ -166,7 +167,10 @@ const startMockStepData = (): void => {
     // Randomly fluctuate speed between 3.0 and 6.0
     speed.value = parseFloat((3 + Math.random() * 3).toFixed(1));
 
-    console.log(`Mock data updated: ${steps.value} steps, ${speed.value} km/h`);
+    // Update distance based on speed (rough calculation: speed in m/s * 1 second)
+    distance.value += parseFloat(((speed.value * 1000) / 3600).toFixed(1));
+
+    console.log(`Mock data updated: ${steps.value} steps, ${speed.value} km/h, ${distance.value}m`);
   }, 1000);
 };
 
@@ -182,7 +186,7 @@ const stopMockStepData = (): void => {
 const startMockHeartData = (): void => {
   if (mockHeartDataInterval) clearInterval(mockHeartDataInterval);
 
-  console.log('Starting mock step data generation');
+  console.log('Starting mock heart data generation');
   // Initial values
   heartRate.value = 65;
   connectionState.value = 'connected';
@@ -196,12 +200,11 @@ const startMockHeartData = (): void => {
   }, 2000);
 };
 
-// Stop mock data generation
 const stopMockHeartData = (): void => {
   if (mockHeartDataInterval) {
     clearInterval(mockHeartDataInterval);
     mockHeartDataInterval = null;
-    console.log('Stopped mock data generation');
+    console.log('Stopped mock heart data generation');
   }
 };
 
@@ -218,6 +221,14 @@ const connectToHA = (isReconnect = false): void => {
   const protocol: string = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const host: string = isDev ? devHost : window.location.hostname;
   const port: string = isDev ? devPort : window.location.port;
+
+  // Check if host/port are valid
+  if (!host || !port || host.includes('your_') || port.includes('your_')) {
+    console.warn('[HomeAssistant] Invalid or missing HA connection config, skipping connection');
+    connectionState.value = 'disconnected';
+    return;
+  }
+
   const url: string = `${protocol}//${host}:${port}/api/websocket`;
 
   if (!isReconnect) {
@@ -288,7 +299,7 @@ const connectToHA = (isReconnect = false): void => {
         steps.value = stepsData;
       }
 
-      const distanceData = eventData['sensor.sensor.ksmb_v1_7aed_current_distance']?.s;
+      const distanceData = eventData['sensor.ksmb_v1_7aed_current_distance']?.s;
       if (distanceData !== 'unavailable' && typeof distanceData === 'number') {
         distance.value = distanceData;
       }

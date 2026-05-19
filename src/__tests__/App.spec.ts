@@ -27,6 +27,7 @@ vi.mock('../composables/useHomeAssistant', () => ({
 vi.mock('../composables/useWidgetManager', () => ({
   useWidgetManager: () => ({
     widgets: ref([]),
+    addWidget: vi.fn(),
   }),
 }));
 

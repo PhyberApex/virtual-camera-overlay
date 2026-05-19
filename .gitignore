@@ -34,4 +34,6 @@ dist-ssr
 # Runtime config injected during build
 public/app-config.json
 
-.claude/progress.json
+# AI
+.agents/
+.claude/

@@ -10,7 +10,6 @@
       {{ connectionStatus }}
     </div>
 
-    <StepsDisplay />
     <BeRightBack
       :image-urls="[
         'rain/janiswow.png',
@@ -41,24 +40,57 @@
           :unit="widget.props?.unit"
           :display-name="widget.props?.displayName"
         />
+        <WidgetSteps
+          v-else-if="widget.type === 'steps'"
+          :id="widget.id"
+          :position="widget.position"
+          :size="widget.size"
+          :should-show="steps !== 0 && speed !== 0 && distance !== 0"
+        />
       </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, type ComputedRef } from 'vue';
-import StepsDisplay from './components/StepsDisplay.vue';
+import { computed, onMounted, onUnmounted, type ComputedRef } from 'vue';
 import DevPanel from './components/DevPanel.vue';
 import BeRightBack from './components/BeRightBack.vue';
 import HeartRate from './components/HeartRate.vue';
 import WidgetTemperature from './components/WidgetTemperature.vue';
 import WidgetSensor from './components/WidgetSensor.vue';
+import WidgetSteps from './components/WidgetSteps.vue';
 import { useHomeAssistant } from './composables/useHomeAssistant';
 import { useWidgetManager } from './composables/useWidgetManager';
 
-const { connectionState } = useHomeAssistant();
-const { widgets } = useWidgetManager();
+const { connectionState, steps, speed, distance } = useHomeAssistant();
+const { widgets, addWidget, updateWidget } = useWidgetManager();
+
+const updateWidgetPosition = () => {
+  const existingWidget = widgets.value.find(w => w.id === 'steps-display');
+  if (existingWidget) {
+    updateWidget('steps-display', {
+      position: { x: window.innerWidth - 270, y: window.innerHeight - 220 },
+    });
+  }
+};
+
+onMounted(() => {
+  addWidget({
+    id: 'steps-display',
+    type: 'steps',
+    position: { x: window.innerWidth - 270, y: window.innerHeight - 220 },
+    size: { width: 240, height: 190 },
+    props: {},
+  });
+
+  // Update widget position on window resize
+  window.addEventListener('resize', updateWidgetPosition);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateWidgetPosition);
+});
 
 interface StatusMap {
   disconnected: string;
