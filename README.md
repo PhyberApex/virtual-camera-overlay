@@ -2,27 +2,29 @@
 
 # Virtual Camera Overlay
 
-A Vue.js-based overlay for displaying fitness tracking data from Home Assistant in OBS Studio.
+A Vue.js-based overlay for displaying fitness tracking data from Home Assistant on your webcam during video meetings.
 
 ## Overview
 
-This application connects to a Home Assistant instance via WebSockets and displays real-time step count and speed data from a fitness device. It's specifically designed to be used as a browser source in OBS Studio to enhance stream visuals overlay over your camera it will just render a HTML page so you will not be able to see the camera in this overlay.
+This application connects to a Home Assistant instance via WebSockets and displays real-time fitness metrics (steps, speed, distance, heart rate) as a transparent overlay. It's designed to be used with OBS Studio's **virtual camera** feature in video conferencing apps (Zoom, Teams, Meet, etc.) so you can work out on a treadmill or exercise bike during meetings while showing colleagues you're actively engaged.
 
 ## Features
 
-- **Real-time Data**: Connects to Home Assistant via WebSockets for instant updates
-- **Responsive Design**: Looks good at any resolution using Tailwind CSS
-- **Status Indicator**: Shows connection status with color coding
-- **OBS Compatible**: Designed to work as a browser source in OBS Studio
+- **Real-time Data**: Connects to Home Assistant via WebSockets for instant fitness metrics
+- **Meeting-Appropriate**: Visible enough to show activity, subtle enough not to distract
+- **Widget System**: Modular display of steps, speed, distance, heart rate with color-coded zones
+- **Virtual Camera Ready**: Designed to work as a browser source in OBS Studio's virtual camera
+- **Transparent Background**: Renders only the overlay elements, no camera feed (use OBS to composite)
 - **Configurable**: Easily customize connection settings via environment variables
 
 ## Setup
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 18+ and pnpm
 - Home Assistant instance with long-lived access token
-- OBS Studio (for streaming/recording)
+- OBS Studio (for virtual camera functionality)
+- Video conferencing app (Zoom, Teams, Meet, etc.)
 
 ### Installation
 
@@ -62,20 +64,20 @@ This application connects to a Home Assistant instance via WebSockets and displa
    pnpm build
    ```
 
-### OBS Studio Integration
+### OBS Studio Virtual Camera Setup
 
-1. In OBS Studio, add a new "Browser" source
-2. For local development:
-   - Use the URL provided by the Vite dev server (typically http://localhost:5173/)
-3. For production:
-   - Host the built files on a web server and use that URL
-   - Or use the "Local File" option and point to the index.html in your dist folder
+This overlay is designed to be composited with your webcam feed in OBS, then output as a virtual camera to your video conferencing app.
 
-4. Set the width and height to match your stream layout (recommend using your full canvas size)
-5. **Important**: Make sure to check "Enable transparency" in the Browser Source properties
-6. Remove any custom CSS that OBS might add by default
+1. **Add your webcam** as a "Video Capture Device" source in OBS
+2. **Add the overlay** as a "Browser" source above your webcam:
+   - For local development: use `http://localhost:5174/` (Vite dev server)
+   - For production: host the built files on a web server or use "Local File" pointing to `dist/index.html`
+3. Set the Browser source width and height to match your OBS canvas size (e.g., 1920x1080)
+4. **Important**: Check "Enable transparency" in the Browser Source properties
+5. **Start Virtual Camera** in OBS (Tools → Start Virtual Camera)
+6. In your video conferencing app (Zoom/Teams/Meet), select "OBS Virtual Camera" as your camera source
 
-**Tip**: If you're still seeing a background or the overlay isn't transparent, add this in the Custom CSS field in OBS:
+**Tip**: If the overlay background isn't transparent, add this in the Browser source Custom CSS field:
 
 ```css
 body {
@@ -112,15 +114,14 @@ If the file is missing, the overlay falls back to the compile-time `VITE_HA_TOKE
 
 ### Development Mode
 
-When in development mode (`pnpm dev`), you can:
+When in development mode (`pnpm dev`), a **Development Panel** appears (press `u` to toggle). It allows you to:
 
-**Development Panel**: A control panel will appear in the top-left corner of the screen during development. It allows you to:
+- Mock step and heart rate data without a real Home Assistant connection
+- Manually control connection state
+- Toggle special overlays (Be Right Back, Heart Rate visualization)
+- Monitor current metric values
 
-- Toggle mock data on/off
-- View the current connection status
-- Monitor the current steps and speed values
-
-This makes it easy to test and develop the overlay without needing a real fitness device or Home Assistant connection.
+This makes it easy to test and develop the overlay without needing a running treadmill or Home Assistant instance.
 
 ### Customizing Entities
 
@@ -130,7 +131,9 @@ If you need to track different entities, edit the `composables/useHomeAssistant.
 
 - **Connection Issues**: Check that your Home Assistant instance is accessible and that your token is valid.
 - **No Data Showing**: Verify that the entity IDs in the code match your Home Assistant entity IDs.
-- **OBS Not Showing Updates**: Try adding a small custom CSS to the browser source: `body { background-color: rgba(0, 0, 0, 0.01); }`
+- **Virtual Camera Not Appearing**: Make sure OBS Virtual Camera is started (Tools → Start Virtual Camera).
+- **Overlay Not Transparent in OBS**: Verify "Enable transparency" is checked in Browser source properties.
+- **Video App Can't See OBS Camera**: Some apps require you to restart them after OBS Virtual Camera is started.
 
 ## License
 

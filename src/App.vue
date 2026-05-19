@@ -1,9 +1,7 @@
 <template>
   <div>
-    <!-- Development panel (only visible in dev mode) -->
     <DevPanel />
 
-    <!-- Connection status indicator that only shows when disconnected -->
     <div
       v-if="connectionState !== 'connected'"
       class="fixed top-2 right-2 px-2 py-1 rounded text-xs"
@@ -12,8 +10,6 @@
       {{ connectionStatus }}
     </div>
 
-    <!-- Main overlay content -->
-    <StepsDisplay />
     <BeRightBack
       :image-urls="[
         'rain/janiswow.png',
@@ -24,34 +20,90 @@
       ]"
     />
     <HeartRate />
+
+    <div class="widgets-layer">
+      <template v-for="widget in widgets" :key="widget.id">
+        <WidgetTemperature
+          v-if="widget.type === 'temperature'"
+          :id="widget.id"
+          :position="widget.position"
+          :size="widget.size"
+          :entity-id="widget.props?.entityId ?? ''"
+          :unit="widget.props?.unit"
+        />
+        <WidgetSensor
+          v-else-if="widget.type === 'sensor'"
+          :id="widget.id"
+          :position="widget.position"
+          :size="widget.size"
+          :entity-id="widget.props?.entityId ?? ''"
+          :unit="widget.props?.unit"
+          :display-name="widget.props?.displayName"
+        />
+        <WidgetSteps
+          v-else-if="widget.type === 'steps'"
+          :id="widget.id"
+          :position="widget.position"
+          :size="widget.size"
+          :should-show="steps !== 0 && speed !== 0 && distance !== 0"
+        />
+      </template>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, type ComputedRef } from 'vue';
-import StepsDisplay from './components/StepsDisplay.vue';
+import { computed, onMounted, onUnmounted, type ComputedRef } from 'vue';
 import DevPanel from './components/DevPanel.vue';
 import BeRightBack from './components/BeRightBack.vue';
 import HeartRate from './components/HeartRate.vue';
+import WidgetTemperature from './components/WidgetTemperature.vue';
+import WidgetSensor from './components/WidgetSensor.vue';
+import WidgetSteps from './components/WidgetSteps.vue';
 import { useHomeAssistant } from './composables/useHomeAssistant';
+import { useWidgetManager } from './composables/useWidgetManager';
 
-// Get the connection state from the home assistant composable
-const { connectionState } = useHomeAssistant();
+const { connectionState, steps, speed, distance } = useHomeAssistant();
+const { widgets, addWidget, updateWidget } = useWidgetManager();
 
-// Define types for the status mapping
+const updateWidgetPosition = () => {
+  const existingWidget = widgets.value.find(w => w.id === 'steps-display');
+  if (existingWidget) {
+    updateWidget('steps-display', {
+      position: { x: window.innerWidth - 270, y: window.innerHeight - 220 },
+    });
+  }
+};
+
+onMounted(() => {
+  addWidget({
+    id: 'steps-display',
+    type: 'steps',
+    position: { x: window.innerWidth - 270, y: window.innerHeight - 220 },
+    size: { width: 240, height: 190 },
+    props: {},
+  });
+
+  // Update widget position on window resize
+  window.addEventListener('resize', updateWidgetPosition);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateWidgetPosition);
+});
+
 interface StatusMap {
   disconnected: string;
   authenticating: string;
   connected: string;
-  [key: string]: string; // Index signature for any other potential state
+  [key: string]: string;
 }
 
-// Define types for the class mapping
 interface ClassMap {
   disconnected: string;
   authenticating: string;
   connected: string;
-  [key: string]: string; // Index signature for any other potential state
+  [key: string]: string;
 }
 
 const connectionStatus: ComputedRef<string> = computed(() => {
@@ -74,13 +126,21 @@ const connectionIndicatorClass: ComputedRef<string> = computed(() => {
 </script>
 
 <style>
-/* Add specific overlay styles */
 #app {
   width: 100%;
   height: 100%;
   position: absolute;
   top: 0;
   left: 0;
-  pointer-events: none; /* Allow clicking through the overlay */
+  pointer-events: none;
+}
+
+.widgets-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 </style>

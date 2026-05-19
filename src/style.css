@@ -2,6 +2,48 @@
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
+
+  /* Design Tokens from DESIGN.md - REFINED */
+  /* Colors - Primary (desaturated for sophistication) */
+  --color-vital-green: oklch(76% 0.12 125); /* was 0.16 - less saturated */
+  --color-vital-green-deep: oklch(63% 0.11 126); /* was 0.14 - less saturated */
+
+  /* Colors - Heart Rate Zones (slightly desaturated reds) */
+  --color-zone-resting: #3b82f6;
+  --color-zone-normal: #10b981;
+  --color-zone-active: #f59e0b;
+  --color-zone-exercise: #f97316;
+  --color-zone-intense: oklch(56% 0.17 25); /* was 0.20 - less alarming */
+  --color-zone-maximum: oklch(40% 0.14 23); /* was 0.16 - more serious, less alarming */
+
+  /* Colors - Neutral (off-white for sophistication) */
+  --color-text-primary: rgba(255, 255, 255, 0.95); /* was #fff - less harsh */
+  --color-text-secondary: rgba(255, 255, 255, 0.85); /* was 0.9 - more contrast */
+  --color-text-muted: #aaaaaa;
+  --color-surface-dark: #1e1e1e;
+  --color-surface-darker: #0a0a0a;
+  --color-border-subtle: #333333;
+  --color-border-medium: #555555; /* was #444 - more visible */
+
+  /* Spacing (rhythmic variation) */
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* Spacing - Widget-specific */
+  --spacing-header-v: 8px; /* tighter vertical for headers */
+  --spacing-header-h: 16px; /* horizontal padding */
+  --spacing-content-v: 20px; /* more generous vertical for content */
+  --spacing-content-h: 24px; /* more generous horizontal for content */
+
+  /* Border Radius (unified) */
+  --radius-widget: 10px; /* unified for all widgets */
+
+  /* Shadows */
+  --shadow-ambient-low: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-ambient-medium: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 body {

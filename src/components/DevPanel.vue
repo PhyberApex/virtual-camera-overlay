@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="isDev"
-    class="fixed top-3 left-3 w-64 bg-opacity-90 bg-gray-800 text-white rounded-lg font-mono text-sm z-100 pointer-events-auto shadow-lg border border-white border-opacity-10"
+    class="fixed top-3 left-3 w-64 bg-opacity-90 bg-gray-800 text-white rounded-lg font-mono text-sm z-[100] pointer-events-auto shadow-lg border border-white border-opacity-10"
   >
     <div
       class="px-3 py-2 bg-gray-700 bg-opacity-80 rounded-t-lg font-bold cursor-pointer border-b border-white border-opacity-10"
@@ -11,7 +11,11 @@
     <div class="p-3">
       <div class="flex justify-between items-center mb-2">
         <p>Connection</p>
-        <select class="bg-gray-700 rounded px-1 text-sm" @input="updateConnectionState">
+        <select
+          v-model="localConnectionState"
+          class="bg-gray-700 rounded px-1 text-sm"
+          @change="updateConnectionState"
+        >
           <option value="connected">Connected</option>
           <option value="authenticating">Authenticating</option>
           <option value="disconnected">Disconnected</option>
@@ -39,13 +43,15 @@
           </button>
         </div>
       </div>
-      <div class="flex justify-between items-center mb-2">
-        <p>Send Events</p>
-        <select v-model="eventToFire" class="bg-gray-700 rounded px-1 text-sm">
-          <option value="brb">Be right back</option>
-          <option value="heart">Heart</option>
-        </select>
-        <button class="bg-gray-700 px-2 py-1 rounded text-xs" @click="fireEvent">Fire</button>
+      <div class="mb-2">
+        <p class="mb-1">Send Events</p>
+        <div class="flex space-x-2">
+          <select v-model="eventToFire" class="bg-gray-700 rounded px-1 text-sm flex-1">
+            <option value="brb">Be right back</option>
+            <option value="heart">Heart</option>
+          </select>
+          <button class="bg-gray-700 px-2 py-1 rounded text-xs" @click="fireEvent">Fire</button>
+        </div>
       </div>
       <div class="border-t border-white border-opacity-10 pt-2 mt-2 text-xs leading-relaxed">
         <div>
@@ -84,6 +90,9 @@ const {
 } = useHomeAssistant(true);
 
 const isDev: Ref<boolean> = ref(false);
+const localConnectionState: Ref<'disconnected' | 'authenticating' | 'connected'> = ref(
+  connectionState.value
+);
 
 // Register keyboard shortcut to toggle dev panel
 onKeyStroke('u', () => {
@@ -106,10 +115,9 @@ const connectionClass: ComputedRef<string> = computed(() => {
   return classMap[connectionState.value] || 'text-gray-500';
 });
 
-const updateConnectionState = (e: Event): void => {
-  if (setConnectionState && e.target) {
-    const target = e.target as HTMLSelectElement;
-    setConnectionState(target.value as 'disconnected' | 'authenticating' | 'connected');
+const updateConnectionState = (): void => {
+  if (setConnectionState) {
+    setConnectionState(localConnectionState.value);
   }
 };
 

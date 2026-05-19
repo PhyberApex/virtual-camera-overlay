@@ -11,7 +11,6 @@ const steps = ref(0);
 const speed = ref(0);
 const distance = ref(0);
 
-// Mock the homeAssistant composable
 vi.mock('../composables/useHomeAssistant', () => ({
   useHomeAssistant: () => ({
     connectionState,
@@ -21,6 +20,14 @@ vi.mock('../composables/useHomeAssistant', () => ({
     steps,
     speed,
     distance,
+    getEntityState: () => undefined,
+  }),
+}));
+
+vi.mock('../composables/useWidgetManager', () => ({
+  useWidgetManager: () => ({
+    widgets: ref([]),
+    addWidget: vi.fn(),
   }),
 }));
 
