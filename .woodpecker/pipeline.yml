@@ -2,6 +2,15 @@ when:
   event: [push, pull_request, manual]
   branch: main
 
+# The homelab Woodpecker fleet is one amd64 agent (phonewave) and two Raspberry
+# Pi 4s. Unlabelled, this pipeline scheduled onto whichever was free and paid
+# for it: 363 runs on phonewave averaged 28s against 135s on a Pi, for the same
+# pnpm install + lint + coverage + build. Nothing here touches a host — the
+# deploy is an smbclient upload — so this is purely about not landing on an SD
+# card. See PhyberApex/infra specs/adr/0023.
+labels:
+  phonewave: true
+
 steps:
   - name: build-test-lint
     image: node:24
