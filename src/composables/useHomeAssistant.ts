@@ -314,8 +314,12 @@ const connectToHA = (isReconnect = false): void => {
         heartRate.value = heartData;
       }
 
-      brbEnabled.value = eventData['input_boolean.janis_vco_brb']?.s === 'on';
-      heartEnabled.value = eventData['input_boolean.janis_vco_heart']?.s === 'on';
+      if ('input_boolean.janis_vco_brb' in eventData) {
+        brbEnabled.value = eventData['input_boolean.janis_vco_brb']?.s === 'on';
+      }
+      if ('input_boolean.janis_vco_heart' in eventData) {
+        heartEnabled.value = eventData['input_boolean.janis_vco_heart']?.s === 'on';
+      }
       compactEnabled.value = eventData['input_boolean.janis_vco_compact']?.s === 'on';
     } else if (message.type === 'event' && message.event && message.event.c) {
       const eventData = message.event.c;
@@ -327,37 +331,66 @@ const connectToHA = (isReconnect = false): void => {
         }
       }
 
-      if (eventData['sensor.ksmb_v1_7aed_current_step_count']) {
-        const newSteps = eventData['sensor.ksmb_v1_7aed_current_step_count']['+']?.s;
+      const stepsDiff = eventData['sensor.ksmb_v1_7aed_current_step_count'];
+      if (stepsDiff) {
+        const newSteps = stepsDiff['+']?.s;
         if (typeof newSteps === 'number' || typeof newSteps === 'string') {
-          steps.value = parseInt(String(newSteps), 10);
+          const parsed = parseInt(String(newSteps), 10);
+          if (Number.isFinite(parsed)) {
+            steps.value = parsed;
+          }
         }
-      } else if (eventData['sensor.ksmb_v1_7aed_current_distance']) {
-        const newDistance = eventData['sensor.ksmb_v1_7aed_current_distance']['+']?.s;
-        if (typeof newDistance === 'number') {
-          distance.value = newDistance;
-        } else if (typeof newDistance === 'string') {
-          distance.value = parseFloat(newDistance);
+      }
+
+      const distanceDiff = eventData['sensor.ksmb_v1_7aed_current_distance'];
+      if (distanceDiff) {
+        const newDistance = distanceDiff['+']?.s;
+        const parsed =
+          typeof newDistance === 'number'
+            ? newDistance
+            : typeof newDistance === 'string'
+              ? parseFloat(newDistance)
+              : undefined;
+        if (parsed !== undefined && Number.isFinite(parsed)) {
+          distance.value = parsed;
         }
-      } else if (eventData['number.ksmb_v1_7aed_speed_level']) {
-        const newSpeed = eventData['number.ksmb_v1_7aed_speed_level']['+']?.s;
-        if (typeof newSpeed === 'number') {
-          speed.value = newSpeed;
-        } else if (typeof newSpeed === 'string') {
-          speed.value = parseFloat(newSpeed);
+      }
+
+      const speedDiff = eventData['number.ksmb_v1_7aed_speed_level'];
+      if (speedDiff) {
+        const newSpeed = speedDiff['+']?.s;
+        const parsed =
+          typeof newSpeed === 'number'
+            ? newSpeed
+            : typeof newSpeed === 'string'
+              ? parseFloat(newSpeed)
+              : undefined;
+        if (parsed !== undefined && Number.isFinite(parsed)) {
+          speed.value = parsed;
         }
-      } else if (eventData['input_boolean.janis_vco_brb']) {
+      }
+
+      if (eventData['input_boolean.janis_vco_brb']) {
         brbEnabled.value = eventData['input_boolean.janis_vco_brb']['+']?.s === 'on';
-      } else if (eventData['input_boolean.janis_vco_heart']) {
+      }
+      if (eventData['input_boolean.janis_vco_heart']) {
         heartEnabled.value = eventData['input_boolean.janis_vco_heart']['+']?.s === 'on';
-      } else if (eventData['input_boolean.janis_vco_compact']) {
+      }
+      if (eventData['input_boolean.janis_vco_compact']) {
         compactEnabled.value = eventData['input_boolean.janis_vco_compact']['+']?.s === 'on';
-      } else if (eventData['sensor.galaxy_watch5_rrry_heart_rate']) {
-        const newHeart = eventData['sensor.galaxy_watch5_rrry_heart_rate']['+']?.s;
-        if (typeof newHeart === 'number') {
-          heartRate.value = newHeart;
-        } else if (typeof newHeart === 'string') {
-          heartRate.value = parseFloat(newHeart);
+      }
+
+      const heartRateDiff = eventData['sensor.galaxy_watch5_rrry_heart_rate'];
+      if (heartRateDiff) {
+        const newHeart = heartRateDiff['+']?.s;
+        const parsed =
+          typeof newHeart === 'number'
+            ? newHeart
+            : typeof newHeart === 'string'
+              ? parseFloat(newHeart)
+              : undefined;
+        if (parsed !== undefined && Number.isFinite(parsed)) {
+          heartRate.value = parsed;
         }
       }
     }
