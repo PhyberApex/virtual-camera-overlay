@@ -58,15 +58,17 @@ describe('App', () => {
   it('renders correctly', () => {
     const wrapper = shallowMount(App);
     expect(wrapper.isVisible()).toBe(true);
-    expect(wrapper.find('.fixed').exists()).toBe(true);
   });
 
-  it('does not show connection indicator when connected', async () => {
-    const wrapper = shallowMount(App);
-    connectionState.value = 'connected';
-    await nextTick();
-    expect(wrapper.find('.fixed').exists()).toBe(false);
-  });
+  it.each(['disconnected', 'authenticating', 'connected'] as const)(
+    'renders no connection-status element when connection state is %s',
+    async state => {
+      const wrapper = shallowMount(App);
+      connectionState.value = state;
+      await nextTick();
+      expect(wrapper.text()).not.toMatch(/Disconnected|Connecting\.\.\.|Connected/);
+    }
+  );
 
   it('positions the steps widget 240x190, 30px from the bottom-right corner, when compact mode is off', () => {
     shallowMount(App);
