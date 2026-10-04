@@ -112,14 +112,14 @@ The palette uses an energy gradient strategy: heart rate zones progress from coo
 
 ### Heart Rate Zones (gradient spectrum)
 
-The heart rate zones form a deliberate cool-to-hot progression. Each color is used for both border and text to maintain zone identity across components:
+The heart rate zones form a deliberate cool-to-hot progression. Each color is used for both border and text to maintain zone identity across components. Zone boundaries are percentages of the viewer's `maxHeartRate` (configured via `public/overlay-config.json`, default 185), each rounded to the nearest BPM: resting <50%, normal 50-60%, active 60-70%, exercise 70-80%, intense 80-90%, maximum 90%+. The figures below illustrate the default of 185:
 
-- **Zone Resting** (#3b82f6 / oklch(60% 0.18 256)): <60 BPM. Calm blue.
-- **Zone Normal** (#10b981 / oklch(63% 0.14 165)): 60-70 BPM. Steady green.
-- **Zone Active** (#f59e0b / oklch(75% 0.17 61)): 70-100 BPM. Warming amber.
-- **Zone Exercise** (#f97316 / oklch(68% 0.18 35)): 100-120 BPM. Orange effort.
-- **Zone Intense** (#dc2626 / oklch(56% 0.20 25)): 120-130 BPM. Red exertion.
-- **Zone Maximum** (#991b1b / oklch(40% 0.16 23)): 130+ BPM. Deep crimson with pulsing animation.
+- **Zone Resting** (#3b82f6 / oklch(60% 0.18 256)): <93 BPM (<50%). Calm blue.
+- **Zone Normal** (#10b981 / oklch(63% 0.14 165)): 93-110 BPM (50-60%). Steady green.
+- **Zone Active** (#f59e0b / oklch(75% 0.17 61)): 111-129 BPM (60-70%). Warming amber.
+- **Zone Exercise** (#f97316 / oklch(68% 0.18 35)): 130-147 BPM (70-80%). Orange effort.
+- **Zone Intense** (#dc2626 / oklch(56% 0.20 25)): 148-166 BPM (80-90%). Red exertion.
+- **Zone Maximum** (#991b1b / oklch(40% 0.16 23)): 167+ BPM (90%+). Deep crimson with pulsing animation.
 
 ### Neutral
 

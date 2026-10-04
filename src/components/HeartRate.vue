@@ -27,40 +27,28 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, nextTick, type Ref } from 'vue';
 import { useHomeAssistant } from '../composables/useHomeAssistant';
+import { useOverlayConfig } from '../composables/useOverlayConfig';
+import { getHeartRateZone, type HeartRateZone } from '../utils/heartRateZone';
 import gsap from 'gsap';
 
 const { heartEnabled, heartRate, connectionLost } = useHomeAssistant();
+const { maxHeartRate } = useOverlayConfig();
 
 const screenBorder: Ref<HTMLDivElement | null> = ref(null);
 const pulseWaves: Ref<HTMLDivElement[]> = ref([]);
 
 let borderPulseAnimation: gsap.core.Timeline | null = null;
 
-// Get CSS classes based on heart rate zones
-const getHeartRateClass = (): string => {
-  if (!heartRate.value) return 'zone-resting';
-
-  const bpm = heartRate.value;
-  if (bpm < 60) return 'zone-resting';
-  if (bpm < 70) return 'zone-normal';
-  if (bpm < 100) return 'zone-active';
-  if (bpm < 120) return 'zone-exercise';
-  if (bpm < 130) return 'zone-intense';
-  return 'zone-maximum';
-};
-
-// REFINED: Get zone name for display (for viewers to understand colors)
-const getHeartRateZoneName = (): string => {
+const getHeartRateZoneForDisplay = (): HeartRateZone => {
   if (!heartRate.value) return 'resting';
-
-  const bpm = heartRate.value;
-  if (bpm < 60) return 'resting';
-  if (bpm < 70) return 'normal';
-  if (bpm < 100) return 'active';
-  if (bpm < 120) return 'exercise';
-  if (bpm < 130) return 'intense';
-  return 'maximum';
+  return getHeartRateZone(heartRate.value, maxHeartRate.value);
 };
+
+// Get CSS classes based on heart rate zones
+const getHeartRateClass = (): string => `zone-${getHeartRateZoneForDisplay()}`;
+
+// Get zone name for display (for viewers to understand colors)
+const getHeartRateZoneName = (): string => getHeartRateZoneForDisplay();
 
 // Start pulsing border animation
 const startBorderPulse = (): void => {
