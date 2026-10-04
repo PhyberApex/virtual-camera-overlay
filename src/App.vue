@@ -54,9 +54,12 @@ import WidgetSensor from './components/WidgetSensor.vue';
 import WidgetSteps from './components/WidgetSteps.vue';
 import { useHomeAssistant } from './composables/useHomeAssistant';
 import { useWidgetManager, type Widget } from './composables/useWidgetManager';
+import { useOverlayConfig, type OverlayWidgetConfig } from './composables/useOverlayConfig';
+import { computeWidgetPosition } from './utils/widgetLayout';
 
 const { steps, speed, distance, compactEnabled, connectionLost } = useHomeAssistant();
 const { widgets, addWidget, updateWidget } = useWidgetManager();
+const { widgets: widgetConfigs, ensureOverlayConfigLoaded } = useOverlayConfig();
 
 const getWidgetEntityId = (widget: Widget): string =>
   (widget.props?.entityId as string | undefined) ?? '';
@@ -65,49 +68,56 @@ const getWidgetUnit = (widget: Widget): string | undefined =>
 const getWidgetDisplayName = (widget: Widget): string | undefined =>
   widget.props?.displayName as string | undefined;
 
-const STEPS_WIDGET_MARGIN = 30;
-const STEPS_WIDGET_SIZE = {
-  normal: { width: 240, height: 190 },
-  // Wide enough for the worst case ("99999 steps", "99999 meters", "9.9 km/h" at
-  // 1.8rem/700 values + 1.4rem/400 labels) with margin for non-Inter fallback fonts.
-  compact: { width: 600, height: 72 },
-};
+// Wide enough for the worst case ("99999 steps", "99999 meters", "9.9 km/h" at
+// 1.8rem/700 values + 1.4rem/400 labels) with margin for non-Inter fallback fonts.
+const STEPS_WIDGET_COMPACT_SIZE = { width: 600, height: 72 };
 
-const getStepsWidgetLayout = () => {
-  const size = compactEnabled.value ? STEPS_WIDGET_SIZE.compact : STEPS_WIDGET_SIZE.normal;
+const getWidgetSize = (widgetConfig: OverlayWidgetConfig): { width: number; height: number } =>
+  widgetConfig.type === 'steps' && compactEnabled.value
+    ? STEPS_WIDGET_COMPACT_SIZE
+    : widgetConfig.size;
+
+const buildWidget = (widgetConfig: OverlayWidgetConfig): Widget => {
+  const size = getWidgetSize(widgetConfig);
+  const viewport = { width: window.innerWidth, height: window.innerHeight };
   return {
+    id: widgetConfig.id,
+    type: widgetConfig.type,
     size,
-    position: {
-      x: window.innerWidth - size.width - STEPS_WIDGET_MARGIN,
-      y: window.innerHeight - size.height - STEPS_WIDGET_MARGIN,
-    },
+    position: computeWidgetPosition(widgetConfig.anchor, widgetConfig.offset, size, viewport),
+    props: widgetConfig.props as Record<string, unknown> | undefined,
   };
 };
 
-const updateStepsWidgetLayout = () => {
-  const existingWidget = widgets.value.find(w => w.id === 'steps-display');
-  if (existingWidget) {
-    updateWidget('steps-display', getStepsWidgetLayout());
-  }
+const updateWidgetLayout = (widgetConfig: OverlayWidgetConfig): void => {
+  updateWidget(widgetConfig.id, buildWidget(widgetConfig));
 };
 
-onMounted(() => {
-  addWidget({
-    id: 'steps-display',
-    type: 'steps',
-    ...getStepsWidgetLayout(),
-    props: {},
-  });
+const updateAllWidgetLayouts = (): void => {
+  widgetConfigs.value.forEach(updateWidgetLayout);
+};
+
+const updateStepsWidgetLayouts = (): void => {
+  widgetConfigs.value
+    .filter(widgetConfig => widgetConfig.type === 'steps')
+    .forEach(updateWidgetLayout);
+};
+
+onMounted(async () => {
+  const configValid = await ensureOverlayConfigLoaded();
+  if (!configValid) return;
+
+  widgetConfigs.value.forEach(widgetConfig => addWidget(buildWidget(widgetConfig)));
 
   // Update widget size and position on window resize
-  window.addEventListener('resize', updateStepsWidgetLayout);
+  window.addEventListener('resize', updateAllWidgetLayouts);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('resize', updateStepsWidgetLayout);
+  window.removeEventListener('resize', updateAllWidgetLayouts);
 });
 
-watch(compactEnabled, updateStepsWidgetLayout);
+watch(compactEnabled, updateStepsWidgetLayouts);
 </script>
 
 <style>

@@ -1,6 +1,7 @@
 import { onMounted, onUnmounted, readonly, ref, watch, type Ref } from 'vue';
 import { getHaToken } from './useRuntimeConfig';
 import { useWidgetManager } from './useWidgetManager';
+import { useOverlayConfig, type OverlayEntities } from './useOverlayConfig';
 
 // Define types for the state
 type ConnectionState = 'disconnected' | 'authenticating' | 'connected';
@@ -46,6 +47,7 @@ const HEARTBEAT_MISSES_ALLOWED = 2;
 const CONNECTION_LOSS_GRACE_PERIOD = 10_000;
 
 let socket: WebSocket | null = null;
+let isConnecting = false;
 let msgId: number = 1;
 let reconnectAttempts = 0;
 let reconnectTimer: number | null = null;
@@ -120,7 +122,7 @@ const scheduleReconnect = (): void => {
   reconnectTimer = window.setTimeout(() => {
     reconnectTimer = null;
     reconnectAttempts += 1;
-    connectToHA(true);
+    void connectToHA(true);
   }, delay);
 };
 
@@ -252,8 +254,26 @@ const handleMissingToken = (): void => {
   socket?.close();
 };
 
-const connectToHA = (isReconnect = false): void => {
-  if (socket) return;
+const connectToHA = async (isReconnect = false): Promise<void> => {
+  if (socket || isConnecting) return;
+  isConnecting = true;
+
+  try {
+    await connectToHAInner(isReconnect);
+  } finally {
+    isConnecting = false;
+  }
+};
+
+const connectToHAInner = async (isReconnect: boolean): Promise<void> => {
+  const { entities: overlayEntities, ensureOverlayConfigLoaded } = useOverlayConfig();
+  const configValid = await ensureOverlayConfigLoaded();
+  const configuredEntities = overlayEntities.value;
+  if (!configValid || !configuredEntities) {
+    connectionState.value = 'disconnected';
+    return;
+  }
+
   // Use different URLs for development and production
   const isDev: boolean = import.meta.env.DEV as boolean;
   const protocol: string = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -320,7 +340,7 @@ const connectToHA = (isReconnect = false): void => {
       console.log('Authentication successful');
 
       // Subscribe to state changes
-      subscribeToEntities();
+      subscribeToEntities(configuredEntities);
     }
     // Initial state snapshot
     else if (message.type === 'event' && message.event && message.event.a) {
@@ -334,40 +354,40 @@ const connectToHA = (isReconnect = false): void => {
         }
       }
 
-      const stepsData = eventData['sensor.ksmb_v1_7aed_current_step_count']?.s;
+      const stepsData = eventData[configuredEntities.steps]?.s;
       if (isUnavailableState(stepsData)) {
         steps.value = 0;
       } else if (typeof stepsData === 'number') {
         steps.value = stepsData;
       }
 
-      const distanceData = eventData['sensor.ksmb_v1_7aed_current_distance']?.s;
+      const distanceData = eventData[configuredEntities.distance]?.s;
       if (isUnavailableState(distanceData)) {
         distance.value = 0;
       } else if (typeof distanceData === 'number') {
         distance.value = distanceData;
       }
 
-      const speedData = eventData['number.ksmb_v1_7aed_speed_level']?.s;
+      const speedData = eventData[configuredEntities.speed]?.s;
       if (isUnavailableState(speedData)) {
         speed.value = 0;
       } else if (typeof speedData === 'number') {
         speed.value = speedData;
       }
-      const heartData = eventData['sensor.galaxy_watch5_rrry_heart_rate']?.s;
+      const heartData = eventData[configuredEntities.heartRate]?.s;
       if (isUnavailableState(heartData)) {
         heartRate.value = 0;
       } else if (typeof heartData === 'number') {
         heartRate.value = heartData;
       }
 
-      if ('input_boolean.janis_vco_brb' in eventData) {
-        brbEnabled.value = eventData['input_boolean.janis_vco_brb']?.s === 'on';
+      if (configuredEntities.brbToggle in eventData) {
+        brbEnabled.value = eventData[configuredEntities.brbToggle]?.s === 'on';
       }
-      if ('input_boolean.janis_vco_heart' in eventData) {
-        heartEnabled.value = eventData['input_boolean.janis_vco_heart']?.s === 'on';
+      if (configuredEntities.heartToggle in eventData) {
+        heartEnabled.value = eventData[configuredEntities.heartToggle]?.s === 'on';
       }
-      compactEnabled.value = eventData['input_boolean.janis_vco_compact']?.s === 'on';
+      compactEnabled.value = eventData[configuredEntities.compactToggle]?.s === 'on';
     } else if (message.type === 'event' && message.event && message.event.c) {
       const eventData = message.event.c;
 
@@ -378,7 +398,7 @@ const connectToHA = (isReconnect = false): void => {
         }
       }
 
-      const stepsDiff = eventData['sensor.ksmb_v1_7aed_current_step_count'];
+      const stepsDiff = eventData[configuredEntities.steps];
       if (stepsDiff) {
         const newSteps = stepsDiff['+']?.s;
         if (isUnavailableState(newSteps)) {
@@ -391,7 +411,7 @@ const connectToHA = (isReconnect = false): void => {
         }
       }
 
-      const distanceDiff = eventData['sensor.ksmb_v1_7aed_current_distance'];
+      const distanceDiff = eventData[configuredEntities.distance];
       if (distanceDiff) {
         const newDistance = distanceDiff['+']?.s;
         if (isUnavailableState(newDistance)) {
@@ -404,7 +424,7 @@ const connectToHA = (isReconnect = false): void => {
         }
       }
 
-      const speedDiff = eventData['number.ksmb_v1_7aed_speed_level'];
+      const speedDiff = eventData[configuredEntities.speed];
       if (speedDiff) {
         const newSpeed = speedDiff['+']?.s;
         if (isUnavailableState(newSpeed)) {
@@ -417,17 +437,20 @@ const connectToHA = (isReconnect = false): void => {
         }
       }
 
-      if (eventData['input_boolean.janis_vco_brb']) {
-        brbEnabled.value = eventData['input_boolean.janis_vco_brb']['+']?.s === 'on';
+      const brbDiff = eventData[configuredEntities.brbToggle];
+      if (brbDiff) {
+        brbEnabled.value = brbDiff['+']?.s === 'on';
       }
-      if (eventData['input_boolean.janis_vco_heart']) {
-        heartEnabled.value = eventData['input_boolean.janis_vco_heart']['+']?.s === 'on';
+      const heartToggleDiff = eventData[configuredEntities.heartToggle];
+      if (heartToggleDiff) {
+        heartEnabled.value = heartToggleDiff['+']?.s === 'on';
       }
-      if (eventData['input_boolean.janis_vco_compact']) {
-        compactEnabled.value = eventData['input_boolean.janis_vco_compact']['+']?.s === 'on';
+      const compactDiff = eventData[configuredEntities.compactToggle];
+      if (compactDiff) {
+        compactEnabled.value = compactDiff['+']?.s === 'on';
       }
 
-      const heartRateDiff = eventData['sensor.galaxy_watch5_rrry_heart_rate'];
+      const heartRateDiff = eventData[configuredEntities.heartRate];
       if (heartRateDiff) {
         const newHeartRate = heartRateDiff['+']?.s;
         if (isUnavailableState(newHeartRate)) {
@@ -443,21 +466,21 @@ const connectToHA = (isReconnect = false): void => {
   };
 };
 
-const subscribeToEntities = (): void => {
+const subscribeToEntities = (configuredEntities: OverlayEntities): void => {
   const { widgets } = useWidgetManager();
   const widgetEntityIds = widgets.value
     .map(w => w.props?.entityId as string | undefined)
     .filter((id): id is string => !!id);
 
-  const entities: string[] = [
+  const entityIds: string[] = [
     ...new Set([
-      'sensor.ksmb_v1_7aed_current_step_count',
-      'sensor.ksmb_v1_7aed_current_distance',
-      'number.ksmb_v1_7aed_speed_level',
-      'input_boolean.janis_vco_brb',
-      'sensor.galaxy_watch5_rrry_heart_rate',
-      'input_boolean.janis_vco_heart',
-      'input_boolean.janis_vco_compact',
+      configuredEntities.steps,
+      configuredEntities.distance,
+      configuredEntities.speed,
+      configuredEntities.brbToggle,
+      configuredEntities.heartRate,
+      configuredEntities.heartToggle,
+      configuredEntities.compactToggle,
       ...widgetEntityIds,
     ]),
   ];
@@ -466,7 +489,7 @@ const subscribeToEntities = (): void => {
     JSON.stringify({
       id: msgId++,
       type: 'subscribe_entities',
-      entity_ids: entities,
+      entity_ids: entityIds,
     })
   );
 };
@@ -513,7 +536,7 @@ interface HomeAssistantReturn {
 
 export function useHomeAssistant(isDevPanel: boolean = false): HomeAssistantReturn {
   onMounted(() => {
-    connectToHA();
+    void connectToHA();
   });
 
   onUnmounted(() => {

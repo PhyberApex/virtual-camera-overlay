@@ -123,9 +123,50 @@ When in development mode (`pnpm dev`), a **Development Panel** appears (press `u
 
 This makes it easy to test and develop the overlay without needing a running treadmill or Home Assistant instance.
 
-### Customizing Entities
+### Customizing Entities and Widgets
 
-If you need to track different entities, edit the `composables/useHomeAssistant.ts` file and update the entity IDs in the `subscribeToEntities` function.
+Which Home Assistant entities feed the overlay, and which widgets appear where, is declared in
+`public/overlay-config.json` — a committed file deployed alongside the build (fetched relative to
+the current page, so it keeps working under Home Assistant's `/local/`). No entity ID or widget
+layout is hard-coded in `src/`.
+
+```json
+{
+  "maxHeartRate": 185,
+  "entities": {
+    "steps": "sensor.ksmb_v1_7aed_current_step_count",
+    "distance": "sensor.ksmb_v1_7aed_current_distance",
+    "speed": "number.ksmb_v1_7aed_speed_level",
+    "heartRate": "sensor.galaxy_watch5_rrry_heart_rate",
+    "brbToggle": "input_boolean.janis_vco_brb",
+    "heartToggle": "input_boolean.janis_vco_heart",
+    "compactToggle": "input_boolean.janis_vco_compact"
+  },
+  "widgets": [
+    {
+      "id": "steps-display",
+      "type": "steps",
+      "anchor": "bottom-right",
+      "offset": { "x": 30, "y": 30 },
+      "size": { "width": 240, "height": 190 }
+    }
+  ]
+}
+```
+
+- `entities` maps every Home Assistant entity the overlay reads to its entity ID. Point the
+  overlay at a different treadmill or watch by editing these values.
+- `widgets` is a list of widgets to render. Each entry has an `id`, a `type` (`steps`,
+  `temperature`, or `sensor`), an `anchor` (`top-left`, `top-right`, `bottom-left`, or
+  `bottom-right`), an `offset` from that corner, a `size`, and type-specific `props` (`entityId`,
+  `unit`, `displayName` — not needed for `steps`, which reads from the entities above). Add a
+  `temperature` or `sensor` entry to light up those widgets; no code change is required.
+- `maxHeartRate` configures the heart-rate zone thresholds (see `DESIGN.md`).
+
+If the file is missing, isn't valid JSON, or is missing/mistypes a required `entities` or
+`widgets` field, the overlay renders nothing and logs one error to the console rather than running
+with partial or stale configuration. See `docs/adr/0001-overlay-config-file.md` for the full
+rationale.
 
 ### Home Assistant Toggles
 
@@ -142,7 +183,7 @@ If a helper doesn't exist in Home Assistant, its toggle simply has no effect; th
 ## Troubleshooting
 
 - **Connection Issues**: Check that your Home Assistant instance is accessible and that your token is valid.
-- **No Data Showing**: Verify that the entity IDs in the code match your Home Assistant entity IDs.
+- **No Data Showing**: Verify that the entity IDs in `public/overlay-config.json` match your Home Assistant entity IDs.
 - **Virtual Camera Not Appearing**: Make sure OBS Virtual Camera is started (Tools → Start Virtual Camera).
 - **Overlay Not Transparent in OBS**: Verify "Enable transparency" is checked in Browser source properties.
 - **Video App Can't See OBS Camera**: Some apps require you to restart them after OBS Virtual Camera is started.

@@ -1,7 +1,29 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { defineComponent } from 'vue';
-import { mount } from '@vue/test-utils';
+import { mount, flushPromises } from '@vue/test-utils';
 import { useHomeAssistant } from '../../composables/useHomeAssistant.js';
+
+const overlayConfigMock = vi.hoisted(() => ({
+  valid: true,
+  entities: {
+    steps: 'sensor.ksmb_v1_7aed_current_step_count',
+    distance: 'sensor.ksmb_v1_7aed_current_distance',
+    speed: 'number.ksmb_v1_7aed_speed_level',
+    heartRate: 'sensor.galaxy_watch5_rrry_heart_rate',
+    brbToggle: 'input_boolean.janis_vco_brb',
+    heartToggle: 'input_boolean.janis_vco_heart',
+    compactToggle: 'input_boolean.janis_vco_compact',
+  },
+}));
+
+vi.mock('../../composables/useOverlayConfig', () => ({
+  useOverlayConfig: () => ({
+    entities: { value: overlayConfigMock.valid ? overlayConfigMock.entities : null },
+    widgets: { value: [] },
+    maxHeartRate: { value: 185 },
+    ensureOverlayConfigLoaded: () => Promise.resolve(overlayConfigMock.valid),
+  }),
+}));
 
 // Mock the WebSocket
 class MockWebSocket {
@@ -99,15 +121,29 @@ class SyncMockWebSocket {
   constructor() {
     SyncMockWebSocket.instances.push(this);
   }
-  send() {}
+  send(data: string): void {
+    void data;
+  }
   close() {}
 }
 
-const mountFresh = async (
+const createHarnessComponent = (
+  freshUseHomeAssistant: typeof import('../../composables/useHomeAssistant.js').useHomeAssistant,
+  isDevPanel: boolean,
+  onResult: (result: ReturnType<typeof freshUseHomeAssistant>) => void
+) =>
+  defineComponent({
+    setup() {
+      onResult(freshUseHomeAssistant(isDevPanel));
+      return () => null;
+    },
+  });
+
+const mountFreshUnasserted = async (
   isDevPanel: boolean = false
 ): Promise<{
   result: ReturnType<typeof import('../../composables/useHomeAssistant.js').useHomeAssistant>;
-  socket: SyncMockWebSocket;
+  socket: SyncMockWebSocket | undefined;
 }> => {
   vi.resetModules();
   SyncMockWebSocket.instances = [];
@@ -119,19 +155,70 @@ const mountFresh = async (
     await import('../../composables/useHomeAssistant.js');
 
   let result: ReturnType<typeof freshUseHomeAssistant>;
-  const TestComponent = defineComponent({
-    setup() {
-      result = freshUseHomeAssistant(isDevPanel);
-      return () => null;
-    },
-  });
-  mount(TestComponent);
+  mount(createHarnessComponent(freshUseHomeAssistant, isDevPanel, r => (result = r)));
+  await flushPromises();
 
-  const socket = SyncMockWebSocket.instances[0];
-  expect(socket).toBeDefined();
-
-  return { result: result!, socket: socket! };
+  return { result: result!, socket: SyncMockWebSocket.instances[0] };
 };
+
+const mountFresh = async (
+  isDevPanel: boolean = false
+): Promise<{
+  result: ReturnType<typeof import('../../composables/useHomeAssistant.js').useHomeAssistant>;
+  socket: SyncMockWebSocket;
+}> => {
+  const { result, socket } = await mountFreshUnasserted(isDevPanel);
+  expect(socket).toBeDefined();
+  return { result, socket: socket! };
+};
+
+describe('useHomeAssistant - overlay config gating', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    overlayConfigMock.valid = true;
+  });
+
+  it('never opens a socket when the overlay config is invalid', async () => {
+    overlayConfigMock.valid = false;
+    const { result, socket } = await mountFreshUnasserted();
+
+    expect(socket).toBeUndefined();
+    expect(result.connectionState.value).toBe('disconnected');
+  });
+
+  it('connects normally once the overlay config is valid again', async () => {
+    const { result } = await mountFresh();
+    expect(result.connectionState.value).not.toBe('disconnected');
+  });
+});
+
+describe('useHomeAssistant - concurrent mounts', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('opens only one socket when multiple components mount in the same tick', async () => {
+    vi.resetModules();
+    SyncMockWebSocket.instances = [];
+    vi.stubGlobal('WebSocket', SyncMockWebSocket);
+    vi.stubEnv('VITE_HA_DEV_HOST', 'sync-test-host');
+    vi.stubEnv('VITE_HA_DEV_PORT', '8123');
+
+    const { useHomeAssistant: freshUseHomeAssistant } =
+      await import('../../composables/useHomeAssistant.js');
+
+    // Mirrors App.vue, HeartRate.vue and BeRightBack.vue each calling
+    // useHomeAssistant() on initial mount, before the overlay config promise
+    // (and therefore the first `connectToHA` call) has resolved.
+    mount(createHarnessComponent(freshUseHomeAssistant, false, () => {}));
+    mount(createHarnessComponent(freshUseHomeAssistant, false, () => {}));
+    mount(createHarnessComponent(freshUseHomeAssistant, false, () => {}));
+
+    await flushPromises();
+
+    expect(SyncMockWebSocket.instances.length).toBe(1);
+  });
+});
 
 describe('useHomeAssistant - compactEnabled entity sync', () => {
   afterEach(() => {
@@ -425,5 +512,46 @@ describe('useHomeAssistant - connection loss grace period', () => {
 
     result.startMockStepData!();
     expect(result.connectionLost.value).toBe(false);
+  });
+});
+
+describe('useHomeAssistant - widget entity subscription', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('includes a config-driven widget entityId in the subscribe_entities payload sent at authentication', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ haToken: 'widget-test-token' }),
+      })
+    );
+
+    const { socket } = await mountFresh();
+    const sendSpy = vi.spyOn(socket, 'send');
+
+    const { useWidgetManager } = await import('../../composables/useWidgetManager.js');
+    useWidgetManager().addWidget({
+      id: 'custom-sensor',
+      type: 'sensor',
+      position: { x: 0, y: 0 },
+      size: { width: 100, height: 100 },
+      props: { entityId: 'sensor.custom_widget_entity' },
+    });
+
+    socket.onmessage!({ data: JSON.stringify({ type: 'auth_required' }) });
+    await flushPromises();
+    socket.onmessage!({ data: JSON.stringify({ type: 'auth_ok' }) });
+    await flushPromises();
+
+    const subscribeMessage = sendSpy.mock.calls
+      .map(([payload]) => JSON.parse(payload as string) as { type: string; entity_ids?: string[] })
+      .find(message => message.type === 'subscribe_entities');
+
+    expect(subscribeMessage?.entity_ids).toContain('sensor.custom_widget_entity');
+    expect(subscribeMessage?.entity_ids).toContain('sensor.ksmb_v1_7aed_current_step_count');
   });
 });
