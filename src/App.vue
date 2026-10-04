@@ -69,7 +69,9 @@ const { widgets, addWidget, updateWidget } = useWidgetManager();
 const STEPS_WIDGET_MARGIN = 30;
 const STEPS_WIDGET_SIZE = {
   normal: { width: 240, height: 190 },
-  compact: { width: 500, height: 72 },
+  // Wide enough for the worst case ("99999 steps", "99999 meters", "9.9 km/h" at
+  // 1.8rem/700 values + 1.4rem/400 labels) with margin for non-Inter fallback fonts.
+  compact: { width: 600, height: 72 },
 };
 
 const getStepsWidgetLayout = () => {
