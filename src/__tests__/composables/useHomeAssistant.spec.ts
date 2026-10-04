@@ -121,7 +121,9 @@ class SyncMockWebSocket {
   constructor() {
     SyncMockWebSocket.instances.push(this);
   }
-  send() {}
+  send(data: string): void {
+    void data;
+  }
   close() {}
 }
 
@@ -476,5 +478,46 @@ describe('useHomeAssistant - connection loss grace period', () => {
 
     result.startMockStepData!();
     expect(result.connectionLost.value).toBe(false);
+  });
+});
+
+describe('useHomeAssistant - widget entity subscription', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('includes a config-driven widget entityId in the subscribe_entities payload sent at authentication', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ haToken: 'widget-test-token' }),
+      })
+    );
+
+    const { socket } = await mountFresh();
+    const sendSpy = vi.spyOn(socket, 'send');
+
+    const { useWidgetManager } = await import('../../composables/useWidgetManager.js');
+    useWidgetManager().addWidget({
+      id: 'custom-sensor',
+      type: 'sensor',
+      position: { x: 0, y: 0 },
+      size: { width: 100, height: 100 },
+      props: { entityId: 'sensor.custom_widget_entity' },
+    });
+
+    socket.onmessage!({ data: JSON.stringify({ type: 'auth_required' }) });
+    await flushPromises();
+    socket.onmessage!({ data: JSON.stringify({ type: 'auth_ok' }) });
+    await flushPromises();
+
+    const subscribeMessage = sendSpy.mock.calls
+      .map(([payload]) => JSON.parse(payload as string) as { type: string; entity_ids?: string[] })
+      .find(message => message.type === 'subscribe_entities');
+
+    expect(subscribeMessage?.entity_ids).toContain('sensor.custom_widget_entity');
+    expect(subscribeMessage?.entity_ids).toContain('sensor.ksmb_v1_7aed_current_step_count');
   });
 });
