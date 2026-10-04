@@ -34,6 +34,7 @@ const distance: Ref<number> = ref(0);
 const connectionState: Ref<ConnectionState> = ref('disconnected');
 const brbEnabled: Ref<boolean> = ref(false);
 const heartEnabled: Ref<boolean> = ref(false);
+const compactEnabled: Ref<boolean> = ref(false);
 const heartRate: Ref<number> = ref(70);
 const entityStates: Ref<Record<string, string | number>> = ref({});
 
@@ -315,6 +316,7 @@ const connectToHA = (isReconnect = false): void => {
 
       brbEnabled.value = eventData['input_boolean.janis_vco_brb']?.s === 'on';
       heartEnabled.value = eventData['input_boolean.janis_vco_heart']?.s === 'on';
+      compactEnabled.value = eventData['input_boolean.janis_vco_compact']?.s === 'on';
     } else if (message.type === 'event' && message.event && message.event.c) {
       const eventData = message.event.c;
 
@@ -348,6 +350,8 @@ const connectToHA = (isReconnect = false): void => {
         brbEnabled.value = eventData['input_boolean.janis_vco_brb']['+']?.s === 'on';
       } else if (eventData['input_boolean.janis_vco_heart']) {
         heartEnabled.value = eventData['input_boolean.janis_vco_heart']['+']?.s === 'on';
+      } else if (eventData['input_boolean.janis_vco_compact']) {
+        compactEnabled.value = eventData['input_boolean.janis_vco_compact']['+']?.s === 'on';
       } else if (eventData['sensor.galaxy_watch5_rrry_heart_rate']) {
         const newHeart = eventData['sensor.galaxy_watch5_rrry_heart_rate']['+']?.s;
         if (typeof newHeart === 'number') {
@@ -374,6 +378,7 @@ const subscribeToEntities = (): void => {
       'input_boolean.janis_vco_brb',
       'sensor.galaxy_watch5_rrry_heart_rate',
       'input_boolean.janis_vco_heart',
+      'input_boolean.janis_vco_compact',
       ...widgetEntityIds,
     ]),
   ];
@@ -399,6 +404,10 @@ const setHeartEnabled = (enabled: boolean): void => {
   heartEnabled.value = enabled;
 };
 
+const setCompactEnabled = (enabled: boolean): void => {
+  compactEnabled.value = enabled;
+};
+
 const getEntityState = (entityId: string): string | number | undefined =>
   entityStates.value[entityId];
 
@@ -409,6 +418,7 @@ interface HomeAssistantReturn {
   connectionState: Readonly<Ref<ConnectionState>>;
   brbEnabled: Readonly<Ref<boolean>>;
   heartEnabled: Readonly<Ref<boolean>>;
+  compactEnabled: Readonly<Ref<boolean>>;
   heartRate: Readonly<Ref<number>>;
   getEntityState: (entityId: string) => string | number | undefined;
   startMockStepData?: () => void;
@@ -418,6 +428,7 @@ interface HomeAssistantReturn {
   setConnectionState?: (state: ConnectionState) => void;
   setBrbEnabled?: (enabled: boolean) => void;
   setHeartEnabled?: (enabled: boolean) => void;
+  setCompactEnabled?: (enabled: boolean) => void;
 }
 
 export function useHomeAssistant(isDevPanel: boolean = false): HomeAssistantReturn {
@@ -438,6 +449,7 @@ export function useHomeAssistant(isDevPanel: boolean = false): HomeAssistantRetu
     connectionState: readonly(connectionState),
     brbEnabled: readonly(brbEnabled),
     heartEnabled: readonly(heartEnabled),
+    compactEnabled: readonly(compactEnabled),
     heartRate: readonly(heartRate),
     getEntityState,
     startMockStepData: isDevPanel ? startMockStepData : undefined,
@@ -447,5 +459,6 @@ export function useHomeAssistant(isDevPanel: boolean = false): HomeAssistantRetu
     setConnectionState: isDevPanel ? setConnectionState : undefined,
     setBrbEnabled: isDevPanel ? setBrbEnabled : undefined,
     setHeartEnabled: isDevPanel ? setHeartEnabled : undefined,
+    setCompactEnabled: isDevPanel ? setCompactEnabled : undefined,
   };
 }

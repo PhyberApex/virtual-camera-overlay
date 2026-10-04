@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-const props = defineProps<{
-  id: string;
-  type: string;
-  position: { x: number; y: number };
-  size: { width: number; height: number };
-}>();
+const props = withDefaults(
+  defineProps<{
+    id: string;
+    type: string;
+    position: { x: number; y: number };
+    size: { width: number; height: number };
+    showHeader?: boolean;
+  }>(),
+  {
+    showHeader: true,
+  }
+);
 
 const style = computed(() => ({
   left: `${props.position.x}px`,
@@ -19,8 +25,13 @@ const widgetName = computed(() => props.type.charAt(0).toUpperCase() + props.typ
 </script>
 
 <template>
-  <div class="widget-base" :style="style" :data-type="type">
-    <div class="widget-header">
+  <div
+    class="widget-base"
+    :class="{ 'widget-base--no-header': !showHeader }"
+    :style="style"
+    :data-type="type"
+  >
+    <div v-if="showHeader" class="widget-header">
       <span class="widget-name">{{ widgetName }}</span>
     </div>
     <div class="widget-content">
@@ -71,5 +82,10 @@ const widgetName = computed(() => props.type.charAt(0).toUpperCase() + props.typ
   flex: 1;
   padding: var(--spacing-content-v) var(--spacing-content-h); /* 20px 24px - more generous */
   overflow: hidden;
+}
+
+/* Header-less widgets reclaim the header's space, so content uses its tighter padding */
+.widget-base--no-header .widget-content {
+  padding: var(--spacing-header-v) var(--spacing-header-h);
 }
 </style>

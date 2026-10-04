@@ -31,4 +31,15 @@ describe('WidgetBase', () => {
     });
     expect(wrapper.find('.slot-child').exists()).toBe(true);
   });
+
+  it('renders the header by default', () => {
+    const wrapper = mount(WidgetBase, { props: baseProps });
+    expect(wrapper.find('.widget-header').exists()).toBe(true);
+  });
+
+  it('omits the header when showHeader is false', () => {
+    const wrapper = mount(WidgetBase, { props: { ...baseProps, showHeader: false } });
+    expect(wrapper.find('.widget-header').exists()).toBe(false);
+    expect(wrapper.find('.widget-name').exists()).toBe(false);
+  });
 });
