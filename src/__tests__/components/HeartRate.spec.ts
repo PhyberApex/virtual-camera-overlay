@@ -6,6 +6,7 @@ import HeartRate from '../../components/HeartRate.vue';
 const heartEnabled = ref(true);
 const heartRate = ref(0);
 const connectionLost = ref(false);
+const maxHeartRate = ref(185);
 
 vi.stubGlobal('matchMedia', (query: string) => ({
   matches: false,
@@ -19,6 +20,12 @@ vi.mock('../../composables/useHomeAssistant', () => ({
     heartEnabled,
     heartRate,
     connectionLost,
+  }),
+}));
+
+vi.mock('../../composables/useOverlayConfig', () => ({
+  useOverlayConfig: () => ({
+    maxHeartRate,
   }),
 }));
 
@@ -49,5 +56,16 @@ describe('HeartRate', () => {
     const wrapper = mount(HeartRate);
 
     expect(wrapper.find('.heart-rate-overlay').exists()).toBe(false);
+  });
+
+  it('derives the zone class and name from the configured maxHeartRate', () => {
+    heartEnabled.value = true;
+    heartRate.value = 150;
+    connectionLost.value = false;
+    maxHeartRate.value = 200;
+    const wrapper = mount(HeartRate);
+
+    expect(wrapper.find('.bpm-display').classes()).toContain('zone-exercise');
+    expect(wrapper.find('.bpm-zone').text()).toBe('exercise');
   });
 });
