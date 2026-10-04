@@ -37,7 +37,7 @@
           :id="widget.id"
           :position="widget.position"
           :size="widget.size"
-          :should-show="steps !== 0 && speed !== 0 && distance !== 0"
+          :should-show="steps !== 0 && speed !== 0 && distance !== 0 && !connectionLost"
         />
       </template>
     </div>
@@ -55,7 +55,7 @@ import WidgetSteps from './components/WidgetSteps.vue';
 import { useHomeAssistant } from './composables/useHomeAssistant';
 import { useWidgetManager, type Widget } from './composables/useWidgetManager';
 
-const { steps, speed, distance, compactEnabled } = useHomeAssistant();
+const { steps, speed, distance, compactEnabled, connectionLost } = useHomeAssistant();
 const { widgets, addWidget, updateWidget } = useWidgetManager();
 
 const getWidgetEntityId = (widget: Widget): string =>
