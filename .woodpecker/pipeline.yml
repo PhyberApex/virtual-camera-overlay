@@ -50,13 +50,12 @@ steps:
       - pnpm test:coverage
       - cp .env.example .env || true
       - pnpm build
-      - printf '{"haToken":"%s"}' "$HA_TOKEN" > dist/app-config.json
-      - cd dist
       # Install smbclient
       - apt-get update && apt-get install -y smbclient
-      # Delete all files and directories recursively, then upload
-      - smbclient //$SMB_SHARE -U "$SMB_USER%$SMB_PASS" -c 'cd www; prompt OFF; recurse ON; del *'
-      - smbclient //$SMB_SHARE -U "$SMB_USER%$SMB_PASS" -c 'cd www; prompt OFF; recurse ON; mput *'
+      # Hashes dist/ (excluding app-config.json), skips the upload on an
+      # unchanged push, and otherwise uploads assets/ first, other files
+      # next, then index.html last, deleting only stale files under assets/.
+      - pnpm run deploy
     when:
       - event: push
       - event: manual

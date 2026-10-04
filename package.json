@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "typecheck": "vue-tsc --noEmit",
+    "deploy": "node .woodpecker/deploy/run.js",
     "prepare": "husky install"
   },
   "dependencies": {
