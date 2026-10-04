@@ -127,6 +127,18 @@ class SyncMockWebSocket {
   close() {}
 }
 
+const createHarnessComponent = (
+  freshUseHomeAssistant: typeof import('../../composables/useHomeAssistant.js').useHomeAssistant,
+  isDevPanel: boolean,
+  onResult: (result: ReturnType<typeof freshUseHomeAssistant>) => void
+) =>
+  defineComponent({
+    setup() {
+      onResult(freshUseHomeAssistant(isDevPanel));
+      return () => null;
+    },
+  });
+
 const mountFreshUnasserted = async (
   isDevPanel: boolean = false
 ): Promise<{
@@ -143,13 +155,7 @@ const mountFreshUnasserted = async (
     await import('../../composables/useHomeAssistant.js');
 
   let result: ReturnType<typeof freshUseHomeAssistant>;
-  const TestComponent = defineComponent({
-    setup() {
-      result = freshUseHomeAssistant(isDevPanel);
-      return () => null;
-    },
-  });
-  mount(TestComponent);
+  mount(createHarnessComponent(freshUseHomeAssistant, isDevPanel, r => (result = r)));
   await flushPromises();
 
   return { result: result!, socket: SyncMockWebSocket.instances[0] };
@@ -183,6 +189,34 @@ describe('useHomeAssistant - overlay config gating', () => {
   it('connects normally once the overlay config is valid again', async () => {
     const { result } = await mountFresh();
     expect(result.connectionState.value).not.toBe('disconnected');
+  });
+});
+
+describe('useHomeAssistant - concurrent mounts', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('opens only one socket when multiple components mount in the same tick', async () => {
+    vi.resetModules();
+    SyncMockWebSocket.instances = [];
+    vi.stubGlobal('WebSocket', SyncMockWebSocket);
+    vi.stubEnv('VITE_HA_DEV_HOST', 'sync-test-host');
+    vi.stubEnv('VITE_HA_DEV_PORT', '8123');
+
+    const { useHomeAssistant: freshUseHomeAssistant } =
+      await import('../../composables/useHomeAssistant.js');
+
+    // Mirrors App.vue, HeartRate.vue and BeRightBack.vue each calling
+    // useHomeAssistant() on initial mount, before the overlay config promise
+    // (and therefore the first `connectToHA` call) has resolved.
+    mount(createHarnessComponent(freshUseHomeAssistant, false, () => {}));
+    mount(createHarnessComponent(freshUseHomeAssistant, false, () => {}));
+    mount(createHarnessComponent(freshUseHomeAssistant, false, () => {}));
+
+    await flushPromises();
+
+    expect(SyncMockWebSocket.instances.length).toBe(1);
   });
 });
 

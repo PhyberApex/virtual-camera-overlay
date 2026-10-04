@@ -47,6 +47,7 @@ const HEARTBEAT_MISSES_ALLOWED = 2;
 const CONNECTION_LOSS_GRACE_PERIOD = 10_000;
 
 let socket: WebSocket | null = null;
+let isConnecting = false;
 let msgId: number = 1;
 let reconnectAttempts = 0;
 let reconnectTimer: number | null = null;
@@ -254,8 +255,17 @@ const handleMissingToken = (): void => {
 };
 
 const connectToHA = async (isReconnect = false): Promise<void> => {
-  if (socket) return;
+  if (socket || isConnecting) return;
+  isConnecting = true;
 
+  try {
+    await connectToHAInner(isReconnect);
+  } finally {
+    isConnecting = false;
+  }
+};
+
+const connectToHAInner = async (isReconnect: boolean): Promise<void> => {
   const { entities: overlayEntities, ensureOverlayConfigLoaded } = useOverlayConfig();
   const configValid = await ensureOverlayConfigLoaded();
   const configuredEntities = overlayEntities.value;
