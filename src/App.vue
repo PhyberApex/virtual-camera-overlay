@@ -85,7 +85,7 @@ const buildWidget = (widgetConfig: OverlayWidgetConfig): Widget => {
     type: widgetConfig.type,
     size,
     position: computeWidgetPosition(widgetConfig.anchor, widgetConfig.offset, size, viewport),
-    props: widgetConfig.props,
+    props: widgetConfig.props as Record<string, unknown> | undefined,
   };
 };
 

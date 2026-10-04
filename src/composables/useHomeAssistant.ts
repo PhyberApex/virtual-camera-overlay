@@ -58,8 +58,6 @@ let mockHeartDataInterval: number | null = null;
 const devHost: string = import.meta.env.VITE_HA_DEV_HOST as string;
 const devPort: string = import.meta.env.VITE_HA_DEV_PORT as string;
 
-const { entities: overlayEntities, ensureOverlayConfigLoaded } = useOverlayConfig();
-
 const parseFiniteFloat = (state: string | number | undefined): number | undefined => {
   const parsed =
     typeof state === 'number' ? state : typeof state === 'string' ? parseFloat(state) : undefined;
@@ -258,6 +256,7 @@ const handleMissingToken = (): void => {
 const connectToHA = async (isReconnect = false): Promise<void> => {
   if (socket) return;
 
+  const { entities: overlayEntities, ensureOverlayConfigLoaded } = useOverlayConfig();
   const configValid = await ensureOverlayConfigLoaded();
   const configuredEntities = overlayEntities.value;
   if (!configValid || !configuredEntities) {

@@ -1,5 +1,5 @@
 import { ref, type Ref } from 'vue';
-import type { WidgetAnchor } from '../utils/widgetLayout';
+import type { WidgetAnchor, Vector2, Size2 } from '../utils/widgetLayout';
 
 export type WidgetType = 'steps' | 'temperature' | 'sensor';
 
@@ -7,15 +7,14 @@ export interface OverlayWidgetProps {
   entityId?: string;
   unit?: string;
   displayName?: string;
-  [key: string]: unknown;
 }
 
 export interface OverlayWidgetConfig {
   id: string;
   type: WidgetType;
   anchor: WidgetAnchor;
-  offset: { x: number; y: number };
-  size: { width: number; height: number };
+  offset: Vector2;
+  size: Size2;
   props?: OverlayWidgetProps;
 }
 
@@ -62,10 +61,10 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);
 
-const isVector2 = (value: unknown): value is { x: number; y: number } =>
+const isVector2 = (value: unknown): value is Vector2 =>
   isRecord(value) && isFiniteNumber(value.x) && isFiniteNumber(value.y);
 
-const isSize2 = (value: unknown): value is { width: number; height: number } =>
+const isSize2 = (value: unknown): value is Size2 =>
   isRecord(value) && isFiniteNumber(value.width) && isFiniteNumber(value.height);
 
 const isNonEmptyString = (value: unknown): value is string =>
