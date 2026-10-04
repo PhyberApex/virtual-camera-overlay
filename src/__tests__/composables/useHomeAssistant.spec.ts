@@ -86,62 +86,155 @@ describe('useHomeAssistant', () => {
   });
 });
 
-describe('useHomeAssistant - compactEnabled entity sync', () => {
-  class SyncMockWebSocket {
-    static instances: SyncMockWebSocket[] = [];
-    onopen: (() => void) | null = null;
-    onmessage: ((event: { data: string }) => void) | null = null;
-    onclose: (() => void) | null = null;
-    onerror: (() => void) | null = null;
-    constructor() {
-      SyncMockWebSocket.instances.push(this);
-    }
-    send() {}
-    close() {}
+class SyncMockWebSocket {
+  static instances: SyncMockWebSocket[] = [];
+  onopen: (() => void) | null = null;
+  onmessage: ((event: { data: string }) => void) | null = null;
+  onclose: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  constructor() {
+    SyncMockWebSocket.instances.push(this);
   }
+  send() {}
+  close() {}
+}
 
-  beforeEach(() => {
-    vi.resetModules();
-    SyncMockWebSocket.instances = [];
-    vi.stubGlobal('WebSocket', SyncMockWebSocket);
-    vi.stubEnv('VITE_HA_DEV_HOST', 'sync-test-host');
-    vi.stubEnv('VITE_HA_DEV_PORT', '8123');
+const mountFresh = async (): Promise<{
+  result: ReturnType<typeof import('../../composables/useHomeAssistant.js').useHomeAssistant>;
+  socket: SyncMockWebSocket;
+}> => {
+  vi.resetModules();
+  SyncMockWebSocket.instances = [];
+  vi.stubGlobal('WebSocket', SyncMockWebSocket);
+  vi.stubEnv('VITE_HA_DEV_HOST', 'sync-test-host');
+  vi.stubEnv('VITE_HA_DEV_PORT', '8123');
+
+  const { useHomeAssistant: freshUseHomeAssistant } =
+    await import('../../composables/useHomeAssistant.js');
+
+  let result: ReturnType<typeof freshUseHomeAssistant>;
+  const TestComponent = defineComponent({
+    setup() {
+      result = freshUseHomeAssistant();
+      return () => null;
+    },
   });
+  mount(TestComponent);
 
+  const socket = SyncMockWebSocket.instances[0];
+  expect(socket).toBeDefined();
+
+  return { result: result!, socket: socket! };
+};
+
+describe('useHomeAssistant - compactEnabled entity sync', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
   it('is true when the initial state payload has the entity on, and follows change events', async () => {
-    const { useHomeAssistant: freshUseHomeAssistant } =
-      await import('../../composables/useHomeAssistant.js');
+    const { result, socket } = await mountFresh();
 
-    let result: ReturnType<typeof freshUseHomeAssistant>;
-    const TestComponent = defineComponent({
-      setup() {
-        result = freshUseHomeAssistant();
-        return () => null;
-      },
-    });
-    mount(TestComponent);
-
-    const socket = SyncMockWebSocket.instances[0];
-    expect(socket).toBeDefined();
-
-    socket!.onmessage!({
+    socket.onmessage!({
       data: JSON.stringify({
         type: 'event',
         event: { a: { 'input_boolean.janis_vco_compact': { s: 'on' } } },
       }),
     });
-    expect(result!.compactEnabled.value).toBe(true);
+    expect(result.compactEnabled.value).toBe(true);
 
-    socket!.onmessage!({
+    socket.onmessage!({
       data: JSON.stringify({
         type: 'event',
         event: { c: { 'input_boolean.janis_vco_compact': { '+': { s: 'off' } } } },
       }),
     });
-    expect(result!.compactEnabled.value).toBe(false);
+    expect(result.compactEnabled.value).toBe(false);
+  });
+});
+
+describe('useHomeAssistant - multi-entity and non-numeric event handling', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('applies every entity present in a single multi-entity c event', async () => {
+    const { result, socket } = await mountFresh();
+
+    socket.onmessage!({
+      data: JSON.stringify({
+        type: 'event',
+        event: {
+          c: {
+            'sensor.ksmb_v1_7aed_current_step_count': { '+': { s: 2000 } },
+            'sensor.galaxy_watch5_rrry_heart_rate': { '+': { s: 88 } },
+          },
+        },
+      }),
+    });
+
+    expect(result.steps.value).toBe(2000);
+    expect(result.heartRate.value).toBe(88);
+  });
+
+  it('leaves brbEnabled and heartEnabled unchanged when an a snapshot omits them', async () => {
+    const { result, socket } = await mountFresh();
+
+    socket.onmessage!({
+      data: JSON.stringify({
+        type: 'event',
+        event: {
+          a: {
+            'input_boolean.janis_vco_brb': { s: 'on' },
+            'input_boolean.janis_vco_heart': { s: 'on' },
+          },
+        },
+      }),
+    });
+    expect(result.brbEnabled.value).toBe(true);
+    expect(result.heartEnabled.value).toBe(true);
+
+    socket.onmessage!({
+      data: JSON.stringify({
+        type: 'event',
+        event: {
+          a: {
+            'sensor.ksmb_v1_7aed_current_step_count': { s: 500 },
+          },
+        },
+      }),
+    });
+
+    expect(result.brbEnabled.value).toBe(true);
+    expect(result.heartEnabled.value).toBe(true);
+  });
+
+  it('discards a non-numeric state in a c event instead of writing NaN', async () => {
+    const { result, socket } = await mountFresh();
+
+    socket.onmessage!({
+      data: JSON.stringify({
+        type: 'event',
+        event: {
+          c: {
+            'sensor.ksmb_v1_7aed_current_step_count': { '+': { s: 1000 } },
+          },
+        },
+      }),
+    });
+    expect(result.steps.value).toBe(1000);
+
+    socket.onmessage!({
+      data: JSON.stringify({
+        type: 'event',
+        event: {
+          c: {
+            'sensor.ksmb_v1_7aed_current_step_count': { '+': { s: 'unavailable' } },
+          },
+        },
+      }),
+    });
+
+    expect(result.steps.value).toBe(1000);
   });
 });
