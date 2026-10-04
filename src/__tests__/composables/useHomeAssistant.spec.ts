@@ -1,7 +1,29 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { defineComponent } from 'vue';
-import { mount } from '@vue/test-utils';
+import { mount, flushPromises } from '@vue/test-utils';
 import { useHomeAssistant } from '../../composables/useHomeAssistant.js';
+
+const overlayConfigMock = vi.hoisted(() => ({
+  valid: true,
+  entities: {
+    steps: 'sensor.ksmb_v1_7aed_current_step_count',
+    distance: 'sensor.ksmb_v1_7aed_current_distance',
+    speed: 'number.ksmb_v1_7aed_speed_level',
+    heartRate: 'sensor.galaxy_watch5_rrry_heart_rate',
+    brbToggle: 'input_boolean.janis_vco_brb',
+    heartToggle: 'input_boolean.janis_vco_heart',
+    compactToggle: 'input_boolean.janis_vco_compact',
+  },
+}));
+
+vi.mock('../../composables/useOverlayConfig', () => ({
+  useOverlayConfig: () => ({
+    entities: { value: overlayConfigMock.valid ? overlayConfigMock.entities : null },
+    widgets: { value: [] },
+    maxHeartRate: { value: 185 },
+    ensureOverlayConfigLoaded: () => Promise.resolve(overlayConfigMock.valid),
+  }),
+}));
 
 // Mock the WebSocket
 class MockWebSocket {
@@ -103,11 +125,11 @@ class SyncMockWebSocket {
   close() {}
 }
 
-const mountFresh = async (
+const mountFreshUnasserted = async (
   isDevPanel: boolean = false
 ): Promise<{
   result: ReturnType<typeof import('../../composables/useHomeAssistant.js').useHomeAssistant>;
-  socket: SyncMockWebSocket;
+  socket: SyncMockWebSocket | undefined;
 }> => {
   vi.resetModules();
   SyncMockWebSocket.instances = [];
@@ -126,12 +148,41 @@ const mountFresh = async (
     },
   });
   mount(TestComponent);
+  await flushPromises();
 
-  const socket = SyncMockWebSocket.instances[0];
-  expect(socket).toBeDefined();
-
-  return { result: result!, socket: socket! };
+  return { result: result!, socket: SyncMockWebSocket.instances[0] };
 };
+
+const mountFresh = async (
+  isDevPanel: boolean = false
+): Promise<{
+  result: ReturnType<typeof import('../../composables/useHomeAssistant.js').useHomeAssistant>;
+  socket: SyncMockWebSocket;
+}> => {
+  const { result, socket } = await mountFreshUnasserted(isDevPanel);
+  expect(socket).toBeDefined();
+  return { result, socket: socket! };
+};
+
+describe('useHomeAssistant - overlay config gating', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    overlayConfigMock.valid = true;
+  });
+
+  it('never opens a socket when the overlay config is invalid', async () => {
+    overlayConfigMock.valid = false;
+    const { result, socket } = await mountFreshUnasserted();
+
+    expect(socket).toBeUndefined();
+    expect(result.connectionState.value).toBe('disconnected');
+  });
+
+  it('connects normally once the overlay config is valid again', async () => {
+    const { result } = await mountFresh();
+    expect(result.connectionState.value).not.toBe('disconnected');
+  });
+});
 
 describe('useHomeAssistant - compactEnabled entity sync', () => {
   afterEach(() => {
