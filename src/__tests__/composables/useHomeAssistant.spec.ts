@@ -413,4 +413,17 @@ describe('useHomeAssistant - connection loss grace period', () => {
     });
     expect(result.connectionLost.value).toBe(false);
   });
+
+  it('clears connectionLost when dev-panel mock data generation is started', async () => {
+    vi.useFakeTimers();
+    const { result } = await mountFresh(true);
+
+    result.setConnectionState!('connected');
+    result.setConnectionState!('disconnected');
+    vi.advanceTimersByTime(10_000);
+    expect(result.connectionLost.value).toBe(true);
+
+    result.startMockStepData!();
+    expect(result.connectionLost.value).toBe(false);
+  });
 });

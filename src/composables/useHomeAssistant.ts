@@ -175,6 +175,7 @@ const cleanupSocket = (): void => {
 
   resetHeartbeat();
   resetReconnectTimer();
+  clearConnectionLossTimer();
 };
 
 const handleConnectionDrop = (): void => {
@@ -194,6 +195,7 @@ const startMockStepData = (): void => {
   speed.value = 3.5;
   distance.value = 850;
   connectionState.value = 'connected';
+  connectionLost.value = false;
 
   mockStepDataInterval = window.setInterval(() => {
     // Randomly update steps (increment by 5-15 steps every second)
@@ -225,6 +227,7 @@ const startMockHeartData = (): void => {
   // Initial values
   heartRate.value = 65;
   connectionState.value = 'connected';
+  connectionLost.value = false;
 
   mockHeartDataInterval = window.setInterval(() => {
     // Randomly fluctuate heartRate between 60 and 180
