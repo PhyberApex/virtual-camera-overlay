@@ -2,14 +2,6 @@
   <div>
     <DevPanel />
 
-    <div
-      v-if="connectionState !== 'connected'"
-      class="fixed top-2 right-2 px-2 py-1 rounded text-xs"
-      :class="connectionIndicatorClass"
-    >
-      {{ connectionStatus }}
-    </div>
-
     <BeRightBack
       :image-urls="[
         'rain/janiswow.png',
@@ -53,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, watch, type ComputedRef } from 'vue';
+import { onMounted, onUnmounted, watch } from 'vue';
 import DevPanel from './components/DevPanel.vue';
 import BeRightBack from './components/BeRightBack.vue';
 import HeartRate from './components/HeartRate.vue';
@@ -63,7 +55,7 @@ import WidgetSteps from './components/WidgetSteps.vue';
 import { useHomeAssistant } from './composables/useHomeAssistant';
 import { useWidgetManager, type Widget } from './composables/useWidgetManager';
 
-const { connectionState, steps, speed, distance, compactEnabled } = useHomeAssistant();
+const { steps, speed, distance, compactEnabled } = useHomeAssistant();
 const { widgets, addWidget, updateWidget } = useWidgetManager();
 
 const getWidgetEntityId = (widget: Widget): string =>
@@ -116,38 +108,6 @@ onUnmounted(() => {
 });
 
 watch(compactEnabled, updateStepsWidgetLayout);
-
-interface StatusMap {
-  disconnected: string;
-  authenticating: string;
-  connected: string;
-  [key: string]: string;
-}
-
-interface ClassMap {
-  disconnected: string;
-  authenticating: string;
-  connected: string;
-  [key: string]: string;
-}
-
-const connectionStatus: ComputedRef<string> = computed(() => {
-  const statuses: StatusMap = {
-    disconnected: 'Disconnected',
-    authenticating: 'Connecting...',
-    connected: 'Connected',
-  };
-  return statuses[connectionState.value] || 'Unknown status';
-});
-
-const connectionIndicatorClass: ComputedRef<string> = computed(() => {
-  const classes: ClassMap = {
-    disconnected: 'bg-red-500 bg-opacity-70 text-white',
-    authenticating: 'bg-yellow-500 bg-opacity-70 text-black',
-    connected: 'bg-green-500 bg-opacity-70 text-white',
-  };
-  return classes[connectionState.value] || 'bg-gray-500 bg-opacity-70 text-white';
-});
 </script>
 
 <style>
