@@ -118,7 +118,7 @@ When in development mode (`pnpm dev`), a **Development Panel** appears (press `u
 
 - Mock step and heart rate data without a real Home Assistant connection
 - Manually control connection state
-- Toggle special overlays (Be Right Back, Heart Rate visualization)
+- Toggle special overlays (Be Right Back, Heart Rate visualization, Compact steps mode)
 - Monitor current metric values
 
 This makes it easy to test and develop the overlay without needing a running treadmill or Home Assistant instance.
@@ -126,6 +126,18 @@ This makes it easy to test and develop the overlay without needing a running tre
 ### Customizing Entities
 
 If you need to track different entities, edit the `composables/useHomeAssistant.ts` file and update the entity IDs in the `subscribeToEntities` function.
+
+### Home Assistant Toggles
+
+These `input_boolean` helpers can be flipped live from Home Assistant to control the overlay without a redeploy:
+
+| Entity                            | Effect                                                     |
+| --------------------------------- | ---------------------------------------------------------- |
+| `input_boolean.janis_vco_brb`     | Shows the "Be Right Back" overlay                          |
+| `input_boolean.janis_vco_heart`   | Enables the heart-rate pulse visualization                 |
+| `input_boolean.janis_vco_compact` | Collapses the steps widget into a compact, header-less row |
+
+If a helper doesn't exist in Home Assistant, its toggle simply has no effect; the overlay behaves as if it were off.
 
 ## Troubleshooting
 

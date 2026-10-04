@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, type ComputedRef } from 'vue';
+import { computed, onMounted, onUnmounted, watch, type ComputedRef } from 'vue';
 import DevPanel from './components/DevPanel.vue';
 import BeRightBack from './components/BeRightBack.vue';
 import HeartRate from './components/HeartRate.vue';
@@ -63,15 +63,32 @@ import WidgetSteps from './components/WidgetSteps.vue';
 import { useHomeAssistant } from './composables/useHomeAssistant';
 import { useWidgetManager } from './composables/useWidgetManager';
 
-const { connectionState, steps, speed, distance } = useHomeAssistant();
+const { connectionState, steps, speed, distance, compactEnabled } = useHomeAssistant();
 const { widgets, addWidget, updateWidget } = useWidgetManager();
 
-const updateWidgetPosition = () => {
+const STEPS_WIDGET_MARGIN = 30;
+const STEPS_WIDGET_SIZE = {
+  normal: { width: 240, height: 190 },
+  // Wide enough for the worst case ("99999 steps", "99999 meters", "9.9 km/h" at
+  // 1.8rem/700 values + 1.4rem/400 labels) with margin for non-Inter fallback fonts.
+  compact: { width: 600, height: 72 },
+};
+
+const getStepsWidgetLayout = () => {
+  const size = compactEnabled.value ? STEPS_WIDGET_SIZE.compact : STEPS_WIDGET_SIZE.normal;
+  return {
+    size,
+    position: {
+      x: window.innerWidth - size.width - STEPS_WIDGET_MARGIN,
+      y: window.innerHeight - size.height - STEPS_WIDGET_MARGIN,
+    },
+  };
+};
+
+const updateStepsWidgetLayout = () => {
   const existingWidget = widgets.value.find(w => w.id === 'steps-display');
   if (existingWidget) {
-    updateWidget('steps-display', {
-      position: { x: window.innerWidth - 270, y: window.innerHeight - 220 },
-    });
+    updateWidget('steps-display', getStepsWidgetLayout());
   }
 };
 
@@ -79,18 +96,19 @@ onMounted(() => {
   addWidget({
     id: 'steps-display',
     type: 'steps',
-    position: { x: window.innerWidth - 270, y: window.innerHeight - 220 },
-    size: { width: 240, height: 190 },
+    ...getStepsWidgetLayout(),
     props: {},
   });
 
-  // Update widget position on window resize
-  window.addEventListener('resize', updateWidgetPosition);
+  // Update widget size and position on window resize
+  window.addEventListener('resize', updateStepsWidgetLayout);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('resize', updateWidgetPosition);
+  window.removeEventListener('resize', updateStepsWidgetLayout);
 });
+
+watch(compactEnabled, updateStepsWidgetLayout);
 
 interface StatusMap {
   disconnected: string;

@@ -9,12 +9,19 @@ defineProps<{
   shouldShow: boolean;
 }>();
 
-const { steps, speed, distance } = useHomeAssistant();
+const { steps, speed, distance, compactEnabled } = useHomeAssistant();
 </script>
 
 <template>
-  <WidgetBase v-if="shouldShow" :id="id" type="steps" :position="position" :size="size">
-    <div class="widget-steps">
+  <WidgetBase
+    v-if="shouldShow"
+    :id="id"
+    type="steps"
+    :position="position"
+    :size="size"
+    :show-header="!compactEnabled"
+  >
+    <div class="widget-steps" :class="{ 'widget-steps--compact': compactEnabled }">
       <div class="stats-row">
         <span class="stats-value">{{ Math.round(steps) }}</span>
         <span class="stats-label">steps</span>
@@ -39,6 +46,14 @@ const { steps, speed, distance } = useHomeAssistant();
   height: 100%;
   justify-content: center;
   padding: 0; /* removed extra padding - content padding handles it */
+}
+
+.widget-steps--compact {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  white-space: nowrap;
 }
 
 .stats-row {
