@@ -56,7 +56,7 @@ const emojiImages = [
 
 // Get random emoji for each particle (deterministic based on index)
 const getRandomEmoji = (index: number): string => {
-  return emojiImages[index % emojiImages.length];
+  return emojiImages[index % emojiImages.length]!;
 };
 </script>
 
