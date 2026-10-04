@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { shallowMount } from '@vue/test-utils';
 import App from '../App.vue';
+import WidgetSteps from '../components/WidgetSteps.vue';
 import { nextTick, ref } from 'vue';
 import type { Widget } from '../composables/useWidgetManager';
 
@@ -12,6 +13,7 @@ const heartRate = ref(70);
 const steps = ref(0);
 const speed = ref(0);
 const distance = ref(0);
+const connectionLost = ref(false);
 
 vi.mock('../composables/useHomeAssistant', () => ({
   useHomeAssistant: () => ({
@@ -23,6 +25,7 @@ vi.mock('../composables/useHomeAssistant', () => ({
     steps,
     speed,
     distance,
+    connectionLost,
     getEntityState: () => undefined,
   }),
 }));
@@ -50,6 +53,10 @@ describe('App', () => {
   beforeEach(() => {
     connectionState.value = 'disconnected';
     compactEnabled.value = false;
+    steps.value = 0;
+    speed.value = 0;
+    distance.value = 0;
+    connectionLost.value = false;
     widgets.value = [];
     addWidget.mockClear();
     updateWidget.mockClear();
@@ -92,6 +99,19 @@ describe('App', () => {
       x: window.innerWidth - widget!.size.width - 30,
       y: window.innerHeight - widget!.size.height - 30,
     });
+  });
+
+  it('hides the steps widget when connectionLost is true, even with non-zero data', async () => {
+    steps.value = 1000;
+    speed.value = 3;
+    distance.value = 500;
+    const wrapper = shallowMount(App);
+    await nextTick();
+    expect(wrapper.findComponent(WidgetSteps).props('shouldShow')).toBe(true);
+
+    connectionLost.value = true;
+    await nextTick();
+    expect(wrapper.findComponent(WidgetSteps).props('shouldShow')).toBe(false);
   });
 
   it('keeps the 30px margin after a window resize, in both modes', async () => {

@@ -1,5 +1,5 @@
 <template>
-  <div v-if="heartEnabled && heartRate" class="heart-rate-overlay">
+  <div v-if="heartEnabled && heartRate && !connectionLost" class="heart-rate-overlay">
     <!-- Pulsing screen border -->
     <div ref="screenBorder" class="screen-border" :class="getHeartRateClass()"></div>
 
@@ -29,7 +29,7 @@ import { ref, watch, onMounted, onUnmounted, nextTick, type Ref } from 'vue';
 import { useHomeAssistant } from '../composables/useHomeAssistant';
 import gsap from 'gsap';
 
-const { heartEnabled, heartRate } = useHomeAssistant();
+const { heartEnabled, heartRate, connectionLost } = useHomeAssistant();
 
 const screenBorder: Ref<HTMLDivElement | null> = ref(null);
 const pulseWaves: Ref<HTMLDivElement[]> = ref([]);
@@ -111,7 +111,7 @@ const stopAnimations = (): void => {
 
 // Watch for heart rate changes
 watch(heartRate, async newRate => {
-  if (newRate && heartEnabled.value) {
+  if (newRate && heartEnabled.value && !connectionLost.value) {
     await nextTick();
     startBorderPulse();
   } else {
@@ -121,7 +121,17 @@ watch(heartRate, async newRate => {
 
 // Watch for heartEnabled changes
 watch(heartEnabled, async enabled => {
-  if (enabled && heartRate.value) {
+  if (enabled && heartRate.value && !connectionLost.value) {
+    await nextTick();
+    startBorderPulse();
+  } else {
+    stopAnimations();
+  }
+});
+
+// Watch for connection-loss changes
+watch(connectionLost, async lost => {
+  if (!lost && heartEnabled.value && heartRate.value) {
     await nextTick();
     startBorderPulse();
   } else {
@@ -130,7 +140,7 @@ watch(heartEnabled, async enabled => {
 });
 
 onMounted(() => {
-  if (heartEnabled.value && heartRate.value) {
+  if (heartEnabled.value && heartRate.value && !connectionLost.value) {
     startBorderPulse();
   }
 });

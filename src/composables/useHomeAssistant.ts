@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted, readonly, ref, type Ref } from 'vue';
+import { onMounted, onUnmounted, readonly, ref, watch, type Ref } from 'vue';
 import { getHaToken } from './useRuntimeConfig';
 import { useWidgetManager } from './useWidgetManager';
 
@@ -35,13 +35,15 @@ const connectionState: Ref<ConnectionState> = ref('disconnected');
 const brbEnabled: Ref<boolean> = ref(false);
 const heartEnabled: Ref<boolean> = ref(false);
 const compactEnabled: Ref<boolean> = ref(false);
-const heartRate: Ref<number> = ref(70);
+const heartRate: Ref<number> = ref(0);
 const entityStates: Ref<Record<string, string | number>> = ref({});
+const connectionLost: Ref<boolean> = ref(false);
 
 const RECONNECT_BASE_DELAY = 2_000;
 const RECONNECT_MAX_DELAY = 30_000;
 const HEARTBEAT_INTERVAL = 30_000;
 const HEARTBEAT_MISSES_ALLOWED = 2;
+const CONNECTION_LOSS_GRACE_PERIOD = 10_000;
 
 let socket: WebSocket | null = null;
 let msgId: number = 1;
@@ -49,6 +51,7 @@ let reconnectAttempts = 0;
 let reconnectTimer: number | null = null;
 let heartbeatTimer: number | null = null;
 let missedHeartbeats = 0;
+let connectionLossTimer: number | null = null;
 let mockStepDataInterval: number | null = null;
 let mockHeartDataInterval: number | null = null;
 const devHost: string = import.meta.env.VITE_HA_DEV_HOST as string;
@@ -59,6 +62,9 @@ const parseFiniteFloat = (state: string | number | undefined): number | undefine
     typeof state === 'number' ? state : typeof state === 'string' ? parseFloat(state) : undefined;
   return parsed !== undefined && Number.isFinite(parsed) ? parsed : undefined;
 };
+
+const isUnavailableState = (state: string | number | undefined): boolean =>
+  state === 'unavailable' || state === 'unknown';
 
 const clearTimeoutSafe = (id: number | null): void => {
   if (id !== null) {
@@ -71,6 +77,28 @@ const clearIntervalSafe = (id: number | null): void => {
     window.clearInterval(id);
   }
 };
+
+const clearConnectionLossTimer = (): void => {
+  clearTimeoutSafe(connectionLossTimer);
+  connectionLossTimer = null;
+};
+
+watch(
+  connectionState,
+  newState => {
+    if (newState === 'connected') {
+      clearConnectionLossTimer();
+      return;
+    }
+    if (connectionLossTimer === null) {
+      connectionLossTimer = window.setTimeout(() => {
+        connectionLossTimer = null;
+        connectionLost.value = true;
+      }, CONNECTION_LOSS_GRACE_PERIOD);
+    }
+  },
+  { flush: 'sync' }
+);
 
 const resetHeartbeat = (): void => {
   clearIntervalSafe(heartbeatTimer);
@@ -294,6 +322,8 @@ const connectToHA = (isReconnect = false): void => {
     // Initial state snapshot
     else if (message.type === 'event' && message.event && message.event.a) {
       const eventData = message.event.a;
+      clearConnectionLossTimer();
+      connectionLost.value = false;
 
       for (const [entityId, state] of Object.entries(eventData)) {
         if (state.s !== 'unavailable') {
@@ -302,21 +332,29 @@ const connectToHA = (isReconnect = false): void => {
       }
 
       const stepsData = eventData['sensor.ksmb_v1_7aed_current_step_count']?.s;
-      if (stepsData !== 'unavailable' && typeof stepsData === 'number') {
+      if (isUnavailableState(stepsData)) {
+        steps.value = 0;
+      } else if (typeof stepsData === 'number') {
         steps.value = stepsData;
       }
 
       const distanceData = eventData['sensor.ksmb_v1_7aed_current_distance']?.s;
-      if (distanceData !== 'unavailable' && typeof distanceData === 'number') {
+      if (isUnavailableState(distanceData)) {
+        distance.value = 0;
+      } else if (typeof distanceData === 'number') {
         distance.value = distanceData;
       }
 
       const speedData = eventData['number.ksmb_v1_7aed_speed_level']?.s;
-      if (speedData !== 'unavailable' && typeof speedData === 'number') {
+      if (isUnavailableState(speedData)) {
+        speed.value = 0;
+      } else if (typeof speedData === 'number') {
         speed.value = speedData;
       }
       const heartData = eventData['sensor.galaxy_watch5_rrry_heart_rate']?.s;
-      if (heartData !== 'unavailable' && typeof heartData === 'number') {
+      if (isUnavailableState(heartData)) {
+        heartRate.value = 0;
+      } else if (typeof heartData === 'number') {
         heartRate.value = heartData;
       }
 
@@ -340,7 +378,9 @@ const connectToHA = (isReconnect = false): void => {
       const stepsDiff = eventData['sensor.ksmb_v1_7aed_current_step_count'];
       if (stepsDiff) {
         const newSteps = stepsDiff['+']?.s;
-        if (typeof newSteps === 'number' || typeof newSteps === 'string') {
+        if (isUnavailableState(newSteps)) {
+          steps.value = 0;
+        } else if (typeof newSteps === 'number' || typeof newSteps === 'string') {
           const parsed = parseInt(String(newSteps), 10);
           if (Number.isFinite(parsed)) {
             steps.value = parsed;
@@ -350,17 +390,27 @@ const connectToHA = (isReconnect = false): void => {
 
       const distanceDiff = eventData['sensor.ksmb_v1_7aed_current_distance'];
       if (distanceDiff) {
-        const parsed = parseFiniteFloat(distanceDiff['+']?.s);
-        if (parsed !== undefined) {
-          distance.value = parsed;
+        const newDistance = distanceDiff['+']?.s;
+        if (isUnavailableState(newDistance)) {
+          distance.value = 0;
+        } else {
+          const parsed = parseFiniteFloat(newDistance);
+          if (parsed !== undefined) {
+            distance.value = parsed;
+          }
         }
       }
 
       const speedDiff = eventData['number.ksmb_v1_7aed_speed_level'];
       if (speedDiff) {
-        const parsed = parseFiniteFloat(speedDiff['+']?.s);
-        if (parsed !== undefined) {
-          speed.value = parsed;
+        const newSpeed = speedDiff['+']?.s;
+        if (isUnavailableState(newSpeed)) {
+          speed.value = 0;
+        } else {
+          const parsed = parseFiniteFloat(newSpeed);
+          if (parsed !== undefined) {
+            speed.value = parsed;
+          }
         }
       }
 
@@ -376,9 +426,14 @@ const connectToHA = (isReconnect = false): void => {
 
       const heartRateDiff = eventData['sensor.galaxy_watch5_rrry_heart_rate'];
       if (heartRateDiff) {
-        const parsed = parseFiniteFloat(heartRateDiff['+']?.s);
-        if (parsed !== undefined) {
-          heartRate.value = parsed;
+        const newHeartRate = heartRateDiff['+']?.s;
+        if (isUnavailableState(newHeartRate)) {
+          heartRate.value = 0;
+        } else {
+          const parsed = parseFiniteFloat(newHeartRate);
+          if (parsed !== undefined) {
+            heartRate.value = parsed;
+          }
         }
       }
     }
@@ -441,6 +496,7 @@ interface HomeAssistantReturn {
   heartEnabled: Readonly<Ref<boolean>>;
   compactEnabled: Readonly<Ref<boolean>>;
   heartRate: Readonly<Ref<number>>;
+  connectionLost: Readonly<Ref<boolean>>;
   getEntityState: (entityId: string) => string | number | undefined;
   startMockStepData?: () => void;
   stopMockStepData?: () => void;
@@ -472,6 +528,7 @@ export function useHomeAssistant(isDevPanel: boolean = false): HomeAssistantRetu
     heartEnabled: readonly(heartEnabled),
     compactEnabled: readonly(compactEnabled),
     heartRate: readonly(heartRate),
+    connectionLost: readonly(connectionLost),
     getEntityState,
     startMockStepData: isDevPanel ? startMockStepData : undefined,
     stopMockStepData: isDevPanel ? stopMockStepData : undefined,
