@@ -23,35 +23,33 @@ function requireEnv(name) {
   return value;
 }
 
-function smb(commands) {
-  execFileSync(
-    'smbclient',
-    [
-      `//${requireEnv('SMB_SHARE')}`,
-      '-U',
-      `${requireEnv('SMB_USER')}%${requireEnv('SMB_PASS')}`,
-      '-c',
-      commands,
-    ],
-    { stdio: 'inherit' }
-  );
-}
-
-function smbCapture(commands) {
-  return execFileSync('smbclient', [
+function smbArgs(commands) {
+  return [
     `//${requireEnv('SMB_SHARE')}`,
     '-U',
     `${requireEnv('SMB_USER')}%${requireEnv('SMB_PASS')}`,
     '-c',
     commands,
-  ]).toString();
+  ];
+}
+
+function smb(commands) {
+  execFileSync('smbclient', smbArgs(commands), { stdio: 'inherit' });
+}
+
+function smbCapture(commands) {
+  return execFileSync('smbclient', smbArgs(commands)).toString();
 }
 
 function fetchPreviousHash(workDir) {
   const localPath = path.join(workDir, HASH_FILENAME);
   try {
     smb(`cd ${REMOTE_ROOT}; prompt OFF; get ${HASH_FILENAME} "${localPath}"`);
-  } catch {
+  } catch (error) {
+    // Treated as "no previous deploy" per acceptance criterion 4. A
+    // transient connectivity failure here surfaces anyway: the upload
+    // that follows uses the same credentials/share and will fail too.
+    console.warn(`Could not retrieve previous deploy hash: ${error.message}`);
     return null;
   }
   if (!existsSync(localPath)) return null;
@@ -65,8 +63,11 @@ function ensureRemoteDirectories(files) {
   for (const dir of listRequiredDirectories(files)) {
     try {
       smb(`cd ${REMOTE_ROOT}; prompt OFF; mkdir "${dir}"`);
-    } catch {
-      // already exists
+    } catch (error) {
+      // Expected once the directory already exists from a prior deploy;
+      // a genuine permission/path problem surfaces when the put that
+      // follows fails, so this is logged rather than treated as fatal.
+      console.warn(`Could not create remote directory "${dir}": ${error.message}`);
     }
   }
 }
@@ -118,6 +119,8 @@ function main() {
     putFiles(plan.other);
     if (plan.index) putFiles([plan.index]);
 
+    // Non-recursive: Vite emits a flat assets/ directory, so stale-asset
+    // detection only needs to compare direct children, not a full tree.
     const remoteAssetListing = smbCapture(`cd ${REMOTE_ROOT}/assets; prompt OFF; ls`);
     const remoteAssetFiles = parseSmbClientListing(remoteAssetListing);
     const localAssetFiles = plan.assets.map(file => path.posix.relative('assets', file));
