@@ -54,6 +54,12 @@ let mockHeartDataInterval: number | null = null;
 const devHost: string = import.meta.env.VITE_HA_DEV_HOST as string;
 const devPort: string = import.meta.env.VITE_HA_DEV_PORT as string;
 
+const parseFiniteFloat = (state: string | number | undefined): number | undefined => {
+  const parsed =
+    typeof state === 'number' ? state : typeof state === 'string' ? parseFloat(state) : undefined;
+  return parsed !== undefined && Number.isFinite(parsed) ? parsed : undefined;
+};
+
 const clearTimeoutSafe = (id: number | null): void => {
   if (id !== null) {
     window.clearTimeout(id);
@@ -344,28 +350,16 @@ const connectToHA = (isReconnect = false): void => {
 
       const distanceDiff = eventData['sensor.ksmb_v1_7aed_current_distance'];
       if (distanceDiff) {
-        const newDistance = distanceDiff['+']?.s;
-        const parsed =
-          typeof newDistance === 'number'
-            ? newDistance
-            : typeof newDistance === 'string'
-              ? parseFloat(newDistance)
-              : undefined;
-        if (parsed !== undefined && Number.isFinite(parsed)) {
+        const parsed = parseFiniteFloat(distanceDiff['+']?.s);
+        if (parsed !== undefined) {
           distance.value = parsed;
         }
       }
 
       const speedDiff = eventData['number.ksmb_v1_7aed_speed_level'];
       if (speedDiff) {
-        const newSpeed = speedDiff['+']?.s;
-        const parsed =
-          typeof newSpeed === 'number'
-            ? newSpeed
-            : typeof newSpeed === 'string'
-              ? parseFloat(newSpeed)
-              : undefined;
-        if (parsed !== undefined && Number.isFinite(parsed)) {
+        const parsed = parseFiniteFloat(speedDiff['+']?.s);
+        if (parsed !== undefined) {
           speed.value = parsed;
         }
       }
@@ -382,14 +376,8 @@ const connectToHA = (isReconnect = false): void => {
 
       const heartRateDiff = eventData['sensor.galaxy_watch5_rrry_heart_rate'];
       if (heartRateDiff) {
-        const newHeart = heartRateDiff['+']?.s;
-        const parsed =
-          typeof newHeart === 'number'
-            ? newHeart
-            : typeof newHeart === 'string'
-              ? parseFloat(newHeart)
-              : undefined;
-        if (parsed !== undefined && Number.isFinite(parsed)) {
+        const parsed = parseFiniteFloat(heartRateDiff['+']?.s);
+        if (parsed !== undefined) {
           heartRate.value = parsed;
         }
       }
