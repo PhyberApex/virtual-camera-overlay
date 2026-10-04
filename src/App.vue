@@ -28,17 +28,17 @@
           :id="widget.id"
           :position="widget.position"
           :size="widget.size"
-          :entity-id="widget.props?.entityId ?? ''"
-          :unit="widget.props?.unit"
+          :entity-id="getWidgetEntityId(widget)"
+          :unit="getWidgetUnit(widget)"
         />
         <WidgetSensor
           v-else-if="widget.type === 'sensor'"
           :id="widget.id"
           :position="widget.position"
           :size="widget.size"
-          :entity-id="widget.props?.entityId ?? ''"
-          :unit="widget.props?.unit"
-          :display-name="widget.props?.displayName"
+          :entity-id="getWidgetEntityId(widget)"
+          :unit="getWidgetUnit(widget)"
+          :display-name="getWidgetDisplayName(widget)"
         />
         <WidgetSteps
           v-else-if="widget.type === 'steps'"
@@ -61,10 +61,17 @@ import WidgetTemperature from './components/WidgetTemperature.vue';
 import WidgetSensor from './components/WidgetSensor.vue';
 import WidgetSteps from './components/WidgetSteps.vue';
 import { useHomeAssistant } from './composables/useHomeAssistant';
-import { useWidgetManager } from './composables/useWidgetManager';
+import { useWidgetManager, type Widget } from './composables/useWidgetManager';
 
 const { connectionState, steps, speed, distance, compactEnabled } = useHomeAssistant();
 const { widgets, addWidget, updateWidget } = useWidgetManager();
+
+const getWidgetEntityId = (widget: Widget): string =>
+  (widget.props?.entityId as string | undefined) ?? '';
+const getWidgetUnit = (widget: Widget): string | undefined =>
+  widget.props?.unit as string | undefined;
+const getWidgetDisplayName = (widget: Widget): string | undefined =>
+  widget.props?.displayName as string | undefined;
 
 const STEPS_WIDGET_MARGIN = 30;
 const STEPS_WIDGET_SIZE = {

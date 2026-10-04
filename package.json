@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "typecheck": "vue-tsc --noEmit",
     "prepare": "husky install"
   },
   "dependencies": {
@@ -46,6 +47,7 @@
     "vite": "^8.0.0",
     "vite-plugin-vue-devtools": "^8.0.0",
     "vitest": "^5.0.0",
-    "vue-eslint-parser": "^10.1.1"
+    "vue-eslint-parser": "^10.1.1",
+    "vue-tsc": "^3.3.12"
   }
 }

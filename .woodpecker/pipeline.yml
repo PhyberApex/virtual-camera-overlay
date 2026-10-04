@@ -23,6 +23,7 @@ steps:
       - corepack prepare pnpm@10 --activate
       - pnpm install --frozen-lockfile
       - pnpm lint
+      - pnpm typecheck
       - pnpm test:coverage
       - cp .env.example .env || true
       - pnpm build
@@ -45,6 +46,7 @@ steps:
       - corepack prepare pnpm@10 --activate
       - pnpm install --frozen-lockfile
       - pnpm lint
+      - pnpm typecheck
       - pnpm test:coverage
       - cp .env.example .env || true
       - pnpm build
