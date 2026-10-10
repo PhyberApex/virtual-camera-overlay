@@ -172,6 +172,11 @@ const mountFresh = async (
   return { result, socket: socket! };
 };
 
+const completeAuth = async (socket: SyncMockWebSocket): Promise<void> => {
+  socket.onmessage!({ data: JSON.stringify({ type: 'auth_ok' }) });
+  await flushPromises();
+};
+
 describe('useHomeAssistant - overlay config gating', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -456,7 +461,8 @@ describe('useHomeAssistant - connection loss grace period', () => {
 
   it('never hides the widgets when connection returns to connected within 10 seconds', async () => {
     vi.useFakeTimers();
-    const { result } = await mountFresh(true);
+    const { result, socket } = await mountFresh(true);
+    await completeAuth(socket);
 
     result.setConnectionState!('connected');
     expect(result.connectionLost.value).toBe(false);
@@ -471,7 +477,8 @@ describe('useHomeAssistant - connection loss grace period', () => {
 
   it('hides the widgets once connectionState is non-connected for a full 10 continuous seconds', async () => {
     vi.useFakeTimers();
-    const { result } = await mountFresh(true);
+    const { result, socket } = await mountFresh(true);
+    await completeAuth(socket);
 
     result.setConnectionState!('connected');
     result.setConnectionState!('disconnected');
@@ -483,6 +490,7 @@ describe('useHomeAssistant - connection loss grace period', () => {
   it('keeps the widgets hidden through reconnection, only clearing once the next snapshot arrives', async () => {
     vi.useFakeTimers();
     const { result, socket } = await mountFresh(true);
+    await completeAuth(socket);
 
     result.setConnectionState!('connected');
     result.setConnectionState!('disconnected');
@@ -503,7 +511,8 @@ describe('useHomeAssistant - connection loss grace period', () => {
 
   it('clears connectionLost when dev-panel mock data generation is started', async () => {
     vi.useFakeTimers();
-    const { result } = await mountFresh(true);
+    const { result, socket } = await mountFresh(true);
+    await completeAuth(socket);
 
     result.setConnectionState!('connected');
     result.setConnectionState!('disconnected');
@@ -512,6 +521,123 @@ describe('useHomeAssistant - connection loss grace period', () => {
 
     result.startMockStepData!();
     expect(result.connectionLost.value).toBe(false);
+  });
+});
+
+describe('useHomeAssistant - auth deadline', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.useRealTimers();
+  });
+
+  it('treats a stalled authentication like a dropped connection once 10 seconds elapse', async () => {
+    vi.useFakeTimers();
+    const { result } = await mountFresh();
+
+    expect(result.connectionState.value).toBe('authenticating');
+
+    vi.advanceTimersByTime(10_000);
+
+    expect(result.connectionState.value).toBe('disconnected');
+  });
+
+  it('schedules a reconnect under the existing backoff after the auth deadline elapses', async () => {
+    vi.useFakeTimers();
+    await mountFresh();
+
+    vi.advanceTimersByTime(10_000);
+    expect(SyncMockWebSocket.instances.length).toBe(1);
+
+    vi.advanceTimersByTime(2_000);
+    await flushPromises();
+    expect(SyncMockWebSocket.instances.length).toBe(2);
+  });
+
+  it('clears the auth deadline when auth_ok arrives before it elapses, with no spurious reconnect', async () => {
+    vi.useFakeTimers();
+    const { result, socket } = await mountFresh();
+
+    await completeAuth(socket);
+    expect(result.connectionState.value).toBe('connected');
+
+    vi.advanceTimersByTime(10_000);
+
+    expect(result.connectionState.value).toBe('connected');
+    expect(SyncMockWebSocket.instances.length).toBe(1);
+  });
+
+  it('re-fetches app-config.json on the next connection attempt after an auth deadline failure', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ haToken: 'token-1' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { socket } = await mountFresh();
+    socket.onmessage!({ data: JSON.stringify({ type: 'auth_required' }) });
+    await flushPromises();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(10_000); // auth deadline elapses -> cached config invalidated
+    vi.advanceTimersByTime(2_000); // base reconnect delay
+    await flushPromises();
+
+    const nextSocket = SyncMockWebSocket.instances[SyncMockWebSocket.instances.length - 1]!;
+    nextSocket.onmessage!({ data: JSON.stringify({ type: 'auth_required' }) });
+    await flushPromises();
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('re-fetches app-config.json after a pre-auth_ok close, even without the deadline elapsing', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ haToken: 'token-1' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { socket } = await mountFresh();
+    socket.onmessage!({ data: JSON.stringify({ type: 'auth_required' }) });
+    await flushPromises();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    socket.onclose!();
+    vi.advanceTimersByTime(2_000); // base reconnect delay
+    await flushPromises();
+
+    const nextSocket = SyncMockWebSocket.instances[SyncMockWebSocket.instances.length - 1]!;
+    nextSocket.onmessage!({ data: JSON.stringify({ type: 'auth_required' }) });
+    await flushPromises();
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps retrying under the existing exponential backoff with no cap or terminal state', async () => {
+    vi.useFakeTimers();
+    const { result } = await mountFresh();
+
+    // Three consecutive auth deadline failures, each backing off further.
+    vi.advanceTimersByTime(10_000); // deadline #1 elapses
+    vi.advanceTimersByTime(2_000); // 2s backoff -> reconnect #1
+    await flushPromises();
+    expect(SyncMockWebSocket.instances.length).toBe(2);
+    expect(result.connectionState.value).toBe('authenticating');
+
+    vi.advanceTimersByTime(10_000); // deadline #2 elapses
+    vi.advanceTimersByTime(4_000); // 4s backoff -> reconnect #2
+    await flushPromises();
+    expect(SyncMockWebSocket.instances.length).toBe(3);
+    expect(result.connectionState.value).toBe('authenticating');
+
+    vi.advanceTimersByTime(10_000); // deadline #3 elapses
+    vi.advanceTimersByTime(8_000); // 8s backoff -> reconnect #3
+    await flushPromises();
+    expect(SyncMockWebSocket.instances.length).toBe(4);
+    expect(result.connectionState.value).toBe('authenticating');
   });
 });
 
@@ -544,8 +670,7 @@ describe('useHomeAssistant - widget entity subscription', () => {
 
     socket.onmessage!({ data: JSON.stringify({ type: 'auth_required' }) });
     await flushPromises();
-    socket.onmessage!({ data: JSON.stringify({ type: 'auth_ok' }) });
-    await flushPromises();
+    await completeAuth(socket);
 
     const subscribeMessage = sendSpy.mock.calls
       .map(([payload]) => JSON.parse(payload as string) as { type: string; entity_ids?: string[] })

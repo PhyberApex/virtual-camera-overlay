@@ -1,5 +1,5 @@
 import { onMounted, onUnmounted, readonly, ref, watch, type Ref } from 'vue';
-import { getHaToken } from './useRuntimeConfig';
+import { getHaToken, invalidateRuntimeConfig } from './useRuntimeConfig';
 import { useWidgetManager } from './useWidgetManager';
 import { useOverlayConfig, type OverlayEntities } from './useOverlayConfig';
 
@@ -45,6 +45,7 @@ const RECONNECT_MAX_DELAY = 30_000;
 const HEARTBEAT_INTERVAL = 30_000;
 const HEARTBEAT_MISSES_ALLOWED = 2;
 const CONNECTION_LOSS_GRACE_PERIOD = 10_000;
+const AUTH_TIMEOUT_PERIOD = 10_000;
 
 let socket: WebSocket | null = null;
 let isConnecting = false;
@@ -54,6 +55,8 @@ let reconnectTimer: number | null = null;
 let heartbeatTimer: number | null = null;
 let missedHeartbeats = 0;
 let connectionLossTimer: number | null = null;
+let authDeadlineTimer: number | null = null;
+let authOkReceived = false;
 let mockStepDataInterval: number | null = null;
 let mockHeartDataInterval: number | null = null;
 const devHost: string = import.meta.env.VITE_HA_DEV_HOST as string;
@@ -83,6 +86,11 @@ const clearIntervalSafe = (id: number | null): void => {
 const clearConnectionLossTimer = (): void => {
   clearTimeoutSafe(connectionLossTimer);
   connectionLossTimer = null;
+};
+
+const clearAuthDeadlineTimer = (): void => {
+  clearTimeoutSafe(authDeadlineTimer);
+  authDeadlineTimer = null;
 };
 
 watch(
@@ -149,6 +157,7 @@ const startHeartbeat = (): void => {
 const forceReconnect = (): void => {
   resetHeartbeat();
   resetReconnectTimer();
+  clearAuthDeadlineTimer();
   if (socket) {
     socket.close();
     socket = null;
@@ -178,13 +187,23 @@ const cleanupSocket = (): void => {
   resetHeartbeat();
   resetReconnectTimer();
   clearConnectionLossTimer();
+  clearAuthDeadlineTimer();
 };
 
 const handleConnectionDrop = (): void => {
   console.warn('[HomeAssistant] Connection dropped, scheduling reconnect');
+  if (!authOkReceived) {
+    invalidateRuntimeConfig();
+  }
   cleanupSocket();
   connectionState.value = 'disconnected';
   scheduleReconnect();
+};
+
+const handleAuthDeadlineElapsed = (): void => {
+  authDeadlineTimer = null;
+  console.warn('[HomeAssistant] Authentication timed out, treating as a dropped connection');
+  handleConnectionDrop();
 };
 
 // Generate mock data for development
@@ -298,6 +317,9 @@ const connectToHAInner = async (isReconnect: boolean): Promise<void> => {
   );
   connectionState.value = 'authenticating';
   socket = new WebSocket(url);
+  authOkReceived = false;
+  clearAuthDeadlineTimer();
+  authDeadlineTimer = window.setTimeout(handleAuthDeadlineElapsed, AUTH_TIMEOUT_PERIOD);
 
   socket.onopen = (): void => {
     console.log('WebSocket connection established, authenticating...');
@@ -335,6 +357,8 @@ const connectToHAInner = async (isReconnect: boolean): Promise<void> => {
         })
       );
     } else if (message.type === 'auth_ok') {
+      authOkReceived = true;
+      clearAuthDeadlineTimer();
       updateAuthenticatedState();
       connectionState.value = 'connected';
       console.log('Authentication successful');
