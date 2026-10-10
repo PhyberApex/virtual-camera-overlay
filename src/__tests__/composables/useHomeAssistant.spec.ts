@@ -297,7 +297,7 @@ describe('useHomeAssistant - multi-entity and non-numeric event handling', () =>
         type: 'event',
         event: {
           a: {
-            'sensor.ksmb_v1_7aed_current_step_count': { s: 500 },
+            'sensor.ksmb_v1_7aed_current_step_count': { s: '500' },
           },
         },
       }),
@@ -335,6 +335,102 @@ describe('useHomeAssistant - multi-entity and non-numeric event handling', () =>
 
     expect(result.steps.value).toBe(1000);
   });
+
+  it('parses a single string-valued snapshot into all four metrics immediately', async () => {
+    const { result, socket } = await mountFresh();
+
+    socket.onmessage!({
+      data: JSON.stringify({
+        type: 'event',
+        event: {
+          a: {
+            'sensor.ksmb_v1_7aed_current_step_count': { s: '1250' },
+            'sensor.ksmb_v1_7aed_current_distance': { s: '850.5' },
+            'number.ksmb_v1_7aed_speed_level': { s: '3.5' },
+            'sensor.galaxy_watch5_rrry_heart_rate': { s: '72' },
+          },
+        },
+      }),
+    });
+
+    expect(result.steps.value).toBe(1250);
+    expect(result.distance.value).toBe(850.5);
+    expect(result.speed.value).toBe(3.5);
+    expect(result.heartRate.value).toBe(72);
+  });
+
+  it('discards a non-numeric, non-unavailable state in an a snapshot instead of writing NaN', async () => {
+    const { result, socket } = await mountFresh();
+
+    socket.onmessage!({
+      data: JSON.stringify({
+        type: 'event',
+        event: {
+          a: {
+            'sensor.ksmb_v1_7aed_current_step_count': { s: '1000' },
+          },
+        },
+      }),
+    });
+    expect(result.steps.value).toBe(1000);
+
+    socket.onmessage!({
+      data: JSON.stringify({
+        type: 'event',
+        event: {
+          a: {
+            'sensor.ksmb_v1_7aed_current_step_count': { s: 'garbage' },
+          },
+        },
+      }),
+    });
+
+    expect(result.steps.value).toBe(1000);
+  });
+});
+
+describe('useHomeAssistant - entityStates excludes unavailable and unknown', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('does not record unavailable or unknown states from a snapshot event', async () => {
+    const { result, socket } = await mountFresh();
+
+    socket.onmessage!({
+      data: JSON.stringify({
+        type: 'event',
+        event: {
+          a: {
+            'sensor.ksmb_v1_7aed_current_step_count': { s: 'unavailable' },
+            'sensor.ksmb_v1_7aed_current_distance': { s: 'unknown' },
+          },
+        },
+      }),
+    });
+
+    expect(result.getEntityState('sensor.ksmb_v1_7aed_current_step_count')).toBeUndefined();
+    expect(result.getEntityState('sensor.ksmb_v1_7aed_current_distance')).toBeUndefined();
+  });
+
+  it('does not record unavailable or unknown states from a change event', async () => {
+    const { result, socket } = await mountFresh();
+
+    socket.onmessage!({
+      data: JSON.stringify({
+        type: 'event',
+        event: {
+          c: {
+            'sensor.ksmb_v1_7aed_current_step_count': { '+': { s: 'unavailable' } },
+            'sensor.ksmb_v1_7aed_current_distance': { '+': { s: 'unknown' } },
+          },
+        },
+      }),
+    });
+
+    expect(result.getEntityState('sensor.ksmb_v1_7aed_current_step_count')).toBeUndefined();
+    expect(result.getEntityState('sensor.ksmb_v1_7aed_current_distance')).toBeUndefined();
+  });
 });
 
 describe('useHomeAssistant - unavailable/unknown clears stale data immediately', () => {
@@ -348,7 +444,7 @@ describe('useHomeAssistant - unavailable/unknown clears stale data immediately',
     socket.onmessage!({
       data: JSON.stringify({
         type: 'event',
-        event: { a: { 'sensor.galaxy_watch5_rrry_heart_rate': { s: 88 } } },
+        event: { a: { 'sensor.galaxy_watch5_rrry_heart_rate': { s: '88' } } },
       }),
     });
     expect(result.heartRate.value).toBe(88);
@@ -394,7 +490,7 @@ describe('useHomeAssistant - unavailable/unknown clears stale data immediately',
       socket.onmessage!({
         data: JSON.stringify({
           type: 'event',
-          event: { a: { [entityId]: { s: 42 } } },
+          event: { a: { [entityId]: { s: '42' } } },
         }),
       });
       expect(result[key].value).toBe(42);
@@ -410,7 +506,7 @@ describe('useHomeAssistant - unavailable/unknown clears stale data immediately',
       socket.onmessage!({
         data: JSON.stringify({
           type: 'event',
-          event: { a: { [entityId]: { s: 7 } } },
+          event: { a: { [entityId]: { s: '7' } } },
         }),
       });
       expect(result[key].value).toBe(7);
@@ -503,7 +599,7 @@ describe('useHomeAssistant - connection loss grace period', () => {
     socket.onmessage!({
       data: JSON.stringify({
         type: 'event',
-        event: { a: { 'sensor.galaxy_watch5_rrry_heart_rate': { s: 70 } } },
+        event: { a: { 'sensor.galaxy_watch5_rrry_heart_rate': { s: '70' } } },
       }),
     });
     expect(result.connectionLost.value).toBe(false);
