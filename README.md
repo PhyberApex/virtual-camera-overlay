@@ -133,6 +133,10 @@ layout is hard-coded in `src/`.
 ```json
 {
   "maxHeartRate": 185,
+  "heartRate": {
+    "anchor": "top-left",
+    "offset": { "x": 20, "y": 20 }
+  },
   "entities": {
     "steps": "sensor.ksmb_v1_7aed_current_step_count",
     "distance": "sensor.ksmb_v1_7aed_current_distance",
@@ -160,13 +164,22 @@ layout is hard-coded in `src/`.
   `temperature`, or `sensor`), an `anchor` (`top-left`, `top-right`, `bottom-left`, or
   `bottom-right`), an `offset` from that corner, a `size`, and type-specific `props` (`entityId`,
   `unit`, `displayName` — not needed for `steps`, which reads from the entities above). Add a
-  `temperature` or `sensor` entry to light up those widgets; no code change is required.
+  `temperature` or `sensor` entry to light up those widgets; no code change is required. A `steps`
+  entry may also set `compactSize` (`{width, height}`), used instead of the built-in 600×72
+  default while compact mode is on; omit it to keep that default.
 - `maxHeartRate` configures the heart-rate zone thresholds (see `DESIGN.md`).
+- `heartRate` controls where the BPM display and its pulse-wave animation render — an `anchor` and
+  `offset`, same shape as a widget's. They always move together, anchored to the same corner. The
+  full-screen pulsing screen border is unaffected and always stays inset to the viewport. If
+  `heartRate` is missing or fails validation, the overlay still renders, `HeartRate` falls back to
+  `top-left`, `{x: 20, y: 20}`, and one warning is logged to the console — unlike `entities`/
+  `widgets`, an invalid `heartRate` doesn't take down the rest of the overlay.
 
 If the file is missing, isn't valid JSON, or is missing/mistypes a required `entities` or
-`widgets` field, the overlay renders nothing and logs one error to the console rather than running
-with partial or stale configuration. See `docs/adr/0001-overlay-config-file.md` for the full
-rationale.
+`widgets` field (including a malformed `compactSize`), the overlay renders nothing and logs one
+error to the console rather than running with partial or stale configuration. See
+`docs/adr/0001-overlay-config-file.md` and `docs/adr/0002-heart-rate-position-and-steps-compact-size.md`
+for the full rationale.
 
 ### Home Assistant Toggles
 

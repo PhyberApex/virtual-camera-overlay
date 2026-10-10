@@ -62,11 +62,11 @@ const getWidgetDisplayName = (widget: Widget): string | undefined =>
 
 // Wide enough for the worst case ("99999 steps", "99999 meters", "9.9 km/h" at
 // 1.8rem/700 values + 1.4rem/400 labels) with margin for non-Inter fallback fonts.
-const STEPS_WIDGET_COMPACT_SIZE = { width: 600, height: 72 };
+const DEFAULT_STEPS_WIDGET_COMPACT_SIZE = { width: 600, height: 72 };
 
 const getWidgetSize = (widgetConfig: OverlayWidgetConfig): { width: number; height: number } =>
   widgetConfig.type === 'steps' && compactEnabled.value
-    ? STEPS_WIDGET_COMPACT_SIZE
+    ? (widgetConfig.compactSize ?? DEFAULT_STEPS_WIDGET_COMPACT_SIZE)
     : widgetConfig.size;
 
 const buildWidget = (widgetConfig: OverlayWidgetConfig): Widget => {

@@ -80,6 +80,61 @@ describe('useOverlayConfig', () => {
       expect(maxHeartRate.value).toBe(185);
     });
 
+    it('defaults heartRateLayout to top-left, {x: 20, y: 20} when the field is absent', async () => {
+      vi.stubGlobal('fetch', mockFetchResolving(validConfig));
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const { useOverlayConfig } = await import('../../composables/useOverlayConfig');
+      const { heartRateLayout, entities } = useOverlayConfig();
+
+      await vi.waitFor(() => expect(entities.value).toEqual(validEntities));
+      expect(heartRateLayout.value).toEqual({ anchor: 'top-left', offset: { x: 20, y: 20 } });
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy.mock.calls[0]?.[0]).toContain('heartRate');
+      warnSpy.mockRestore();
+    });
+
+    it('uses a valid heartRate block and logs no warning', async () => {
+      const heartRate = { anchor: 'bottom-right', offset: { x: 40, y: 10 } };
+      vi.stubGlobal('fetch', mockFetchResolving({ ...validConfig, heartRate }));
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const { useOverlayConfig } = await import('../../composables/useOverlayConfig');
+      const { heartRateLayout, entities } = useOverlayConfig();
+
+      await vi.waitFor(() => expect(entities.value).toEqual(validEntities));
+      expect(heartRateLayout.value).toEqual(heartRate);
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it('falls back to the default heartRateLayout and warns once when heartRate fails shape validation', async () => {
+      vi.stubGlobal(
+        'fetch',
+        mockFetchResolving({ ...validConfig, heartRate: { anchor: 'center', offset: { x: 1 } } })
+      );
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const { useOverlayConfig } = await import('../../composables/useOverlayConfig');
+      const { heartRateLayout, entities } = useOverlayConfig();
+
+      await vi.waitFor(() => expect(entities.value).toEqual(validEntities));
+      expect(heartRateLayout.value).toEqual({ anchor: 'top-left', offset: { x: 20, y: 20 } });
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      warnSpy.mockRestore();
+    });
+
+    it('accepts a steps widget with a valid compactSize', async () => {
+      const compactStepsWidget = { ...validStepsWidget, compactSize: { width: 500, height: 60 } };
+      vi.stubGlobal('fetch', mockFetchResolving({ ...validConfig, widgets: [compactStepsWidget] }));
+
+      const { useOverlayConfig } = await import('../../composables/useOverlayConfig');
+      const { widgets, entities } = useOverlayConfig();
+
+      await vi.waitFor(() => expect(entities.value).toEqual(validEntities));
+      expect(widgets.value).toEqual([compactStepsWidget]);
+    });
+
     it('accepts temperature and sensor widgets with per-type props, with no code change required', async () => {
       const widgets = [
         validStepsWidget,
@@ -176,6 +231,17 @@ describe('useOverlayConfig', () => {
       vi.stubGlobal(
         'fetch',
         mockFetchResolving({ ...validConfig, widgets: [{ ...validStepsWidget, type: 'clock' }] })
+      );
+      await expectInvalid();
+    });
+
+    it('when a steps widget has a malformed compactSize', async () => {
+      vi.stubGlobal(
+        'fetch',
+        mockFetchResolving({
+          ...validConfig,
+          widgets: [{ ...validStepsWidget, compactSize: { width: '500', height: 60 } }],
+        })
       );
       await expectInvalid();
     });

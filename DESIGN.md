@@ -191,9 +191,10 @@ This system is flat by default with tonal layering via transparency. Shadows are
 - **Trigger:** `input_boolean.janis_vco_compact` toggled on in Home Assistant; toggling live switches layouts with no reload
 - **Header:** None. The "Steps" title is omitted entirely.
 - **Layout:** Steps, distance and speed sit in a single horizontal row (value + label pairs), instead of three stacked rows
-- **Height:** At most 72px
-- **Width:** Sized to fit a 5-digit step count, a 5-digit distance and a one-decimal speed without clipping or wrapping
-- **Position:** Same bottom-right anchor as the normal variant, 30px from the right/bottom edges, in both modes and after a window resize
+- **Height:** At most 72px by default
+- **Width:** Sized to fit a 5-digit step count, a 5-digit distance and a one-decimal speed without clipping or wrapping, by default
+- **Size:** Configurable per-widget via `compactSize` in `public/overlay-config.json` (`widgets[].compactSize`, `{width, height}`); omit it to keep the 600×72 default. Malformed, it fails the whole config's validation like any other widget field.
+- **Position:** Same bottom-right anchor as the normal variant, 30px from the right/bottom edges, in both modes and after a window resize — unaffected by `compactSize`, which only changes the footprint
 - **Typography & Background:** Unchanged from the base steps widget — metric values stay 1.8rem/700 with `tabular-nums`, labels stay 400 weight, same Vital Green semi-transparent background and `--radius-widget` radius. Compact means a smaller footprint, not smaller text.
 
 ### BPM Display
@@ -203,6 +204,7 @@ This system is flat by default with tonal layering via transparency. Shadows are
 - **Border:** 2px solid, color determined by heart rate zone
 - **Padding:** 12px 16px
 - **State:** Border and text color both change to match the active zone color
+- **Position:** Configurable via `heartRate` (`anchor` + `offset`) in `public/overlay-config.json`; defaults to `top-left`, `{x: 20, y: 20}` if missing or invalid (one `console.warn`, not fatal). The pulse waves always share this same position. The mobile breakpoint shrinks the offset by 5px per axis, relative to whichever corner is configured.
 
 ### Pulse Waves
 
