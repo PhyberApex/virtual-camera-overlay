@@ -47,11 +47,11 @@ const subtitle: Ref<HTMLParagraphElement | null> = ref(null);
 
 // Emoji images for particles
 const emojiImages = [
-  '/rain/janiswow.png',
-  '/rain/janisreally.png',
-  '/rain/janisapproved.png',
-  '/rain/janiswhy.png',
-  '/rain/mortyxmas.png',
+  'rain/janiswow.png',
+  'rain/janisreally.png',
+  'rain/janisapproved.png',
+  'rain/janiswhy.png',
+  'rain/mortyxmas.png',
 ];
 
 // Get random emoji for each particle (deterministic based on index)

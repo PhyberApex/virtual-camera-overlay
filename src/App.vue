@@ -2,15 +2,7 @@
   <div>
     <DevPanel />
 
-    <BeRightBack
-      :image-urls="[
-        'rain/janiswow.png',
-        'rain/janiswhy.png',
-        'rain/janisapproved.png',
-        'rain/janisreally.png',
-        'rain/mortyxmas.png',
-      ]"
-    />
+    <BeRightBack />
     <HeartRate />
 
     <div class="widgets-layer">
