@@ -39,6 +39,13 @@ const fetchRuntimeConfig = async (): Promise<RuntimeConfig | null> => {
   return fetchPromise;
 };
 
+export const invalidateRuntimeConfig = (): void => {
+  runtimeConfig.value = null;
+  // Drop any in-flight fetch too, otherwise the next call would await a
+  // request that was already issued with the stale, pre-invalidation state.
+  fetchPromise = null;
+};
+
 export const getHaToken = async (): Promise<string | null> => {
   const config = await fetchRuntimeConfig();
   const envFallback = import.meta.env.VITE_HA_TOKEN as string | undefined;
