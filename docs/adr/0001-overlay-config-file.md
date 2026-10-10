@@ -34,9 +34,11 @@ layout as well, rather than introducing a second configuration mechanism.
   `src/utils/widgetLayout.ts` resolves `anchor`/`offset`/`size` against the current viewport into
   an `{x, y}` position; `App.vue` recomputes it on window resize and, for the `steps` widget only,
   on compact-mode toggle (its compact-mode alternate size stays a code-level constant, unaffected
-  by this change).
+  by this change). (Amended by `0002`: the `steps` widget's compact-mode size becomes configurable
+  via an optional `compactSize` field.)
 - `HeartRate` and `BeRightBack` stay fixed, non-repositionable components; only the entity IDs they
-  depend on (via `useHomeAssistant`) become configurable.
+  depend on (via `useHomeAssistant`) become configurable. (Amended by `0002`: `HeartRate`'s
+  position becomes configurable; `BeRightBack` stays fixed.)
 - Validation is a hand-written guard (no schema library): `entities` and `widgets` are required
   and type-checked field by field. If the file can't be fetched, isn't valid JSON, or fails this
   guard, the overlay renders nothing and logs exactly one `console.error` — mirroring the existing

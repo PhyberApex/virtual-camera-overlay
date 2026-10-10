@@ -3,8 +3,8 @@
     <!-- Pulsing screen border -->
     <div ref="screenBorder" class="screen-border" :class="getHeartRateClass()"></div>
 
-    <!-- Pulse waves emanating from top-left -->
-    <div class="pulse-waves">
+    <!-- Pulse waves, anchored to the configured corner -->
+    <div class="pulse-waves" :style="cornerStyle">
       <div
         v-for="wave in 3"
         :key="wave"
@@ -15,8 +15,8 @@
       ></div>
     </div>
 
-    <!-- Small BPM display with zone indicator -->
-    <div class="bpm-display" :class="getHeartRateClass()">
+    <!-- Small BPM display with zone indicator, anchored to the same corner -->
+    <div class="bpm-display" :class="getHeartRateClass()" :style="cornerStyle">
       <div class="bpm-value">{{ heartRate }}</div>
       <div class="bpm-label">BPM</div>
       <div class="bpm-zone">{{ getHeartRateZoneName() }}</div>
@@ -25,17 +25,40 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, nextTick, type Ref } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick, type Ref } from 'vue';
 import { useHomeAssistant } from '../composables/useHomeAssistant';
 import { useOverlayConfig } from '../composables/useOverlayConfig';
 import { getHeartRateZone, type HeartRateZone } from '../utils/heartRateZone';
+import { computeCornerStyle } from '../utils/widgetLayout';
 import gsap from 'gsap';
 
 const { heartEnabled, heartRate, connectionLost } = useHomeAssistant();
-const { maxHeartRate } = useOverlayConfig();
+const { maxHeartRate, heartRateLayout } = useOverlayConfig();
 
 const screenBorder: Ref<HTMLDivElement | null> = ref(null);
 const pulseWaves: Ref<HTMLDivElement[]> = ref([]);
+
+// Matches the existing .bpm-display/.pulse-waves mobile breakpoint below.
+const MOBILE_BREAKPOINT_WIDTH = 768;
+const MOBILE_OFFSET_REDUCTION = 5;
+
+const isMobile: Ref<boolean> = ref(window.innerWidth <= MOBILE_BREAKPOINT_WIDTH);
+const updateIsMobile = (): void => {
+  isMobile.value = window.innerWidth <= MOBILE_BREAKPOINT_WIDTH;
+};
+
+const effectiveOffset = computed(() => {
+  const { offset } = heartRateLayout.value;
+  if (!isMobile.value) return offset;
+  return {
+    x: Math.max(0, offset.x - MOBILE_OFFSET_REDUCTION),
+    y: Math.max(0, offset.y - MOBILE_OFFSET_REDUCTION),
+  };
+});
+
+const cornerStyle = computed(() =>
+  computeCornerStyle(heartRateLayout.value.anchor, effectiveOffset.value)
+);
 
 let borderPulseAnimation: gsap.core.Timeline | null = null;
 
@@ -131,10 +154,12 @@ onMounted(() => {
   if (heartEnabled.value && heartRate.value && !connectionLost.value) {
     startBorderPulse();
   }
+  window.addEventListener('resize', updateIsMobile);
 });
 
 onUnmounted(() => {
   stopAnimations();
+  window.removeEventListener('resize', updateIsMobile);
 });
 </script>
 
@@ -156,11 +181,9 @@ onUnmounted(() => {
   transition: border-color 0.3s ease;
 }
 
-/* REFINED: BPM Display - top left corner with zone text */
+/* REFINED: BPM Display - positioned via cornerStyle, anchored to the configured corner */
 .bpm-display {
   position: absolute;
-  top: 20px;
-  left: 20px;
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(8px);
   border-radius: var(--radius-widget); /* unified radius */
@@ -199,11 +222,9 @@ onUnmounted(() => {
   margin-top: 4px;
 }
 
-/* Pulse waves */
+/* Pulse waves - positioned via cornerStyle, anchored to the configured corner */
 .pulse-waves {
   position: absolute;
-  top: 20px;
-  left: 20px;
 }
 
 .pulse-wave {
@@ -297,8 +318,6 @@ onUnmounted(() => {
   }
 
   .bpm-display {
-    top: 15px;
-    left: 15px;
     padding: 8px 12px;
     min-width: 80px;
   }
@@ -313,11 +332,6 @@ onUnmounted(() => {
 
   .bpm-zone {
     font-size: 0.55rem;
-  }
-
-  .pulse-waves {
-    top: 15px;
-    left: 15px;
   }
 
   .pulse-wave {

@@ -1,5 +1,9 @@
 {
   "maxHeartRate": 185,
+  "heartRate": {
+    "anchor": "top-left",
+    "offset": { "x": 20, "y": 20 }
+  },
   "entities": {
     "steps": "sensor.ksmb_v1_7aed_current_step_count",
     "distance": "sensor.ksmb_v1_7aed_current_distance",

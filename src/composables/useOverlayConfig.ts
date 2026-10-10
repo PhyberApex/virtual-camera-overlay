@@ -15,7 +15,13 @@ export interface OverlayWidgetConfig {
   anchor: WidgetAnchor;
   offset: Vector2;
   size: Size2;
+  compactSize?: Size2;
   props?: OverlayWidgetProps;
+}
+
+export interface HeartRateLayout {
+  anchor: WidgetAnchor;
+  offset: Vector2;
 }
 
 export interface OverlayEntities {
@@ -30,11 +36,16 @@ export interface OverlayEntities {
 
 interface OverlayConfig {
   maxHeartRate?: unknown;
+  heartRate?: unknown;
   entities: OverlayEntities;
   widgets: OverlayWidgetConfig[];
 }
 
 export const DEFAULT_MAX_HEART_RATE = 185;
+export const DEFAULT_HEART_RATE_LAYOUT: HeartRateLayout = {
+  anchor: 'top-left',
+  offset: { x: 20, y: 20 },
+};
 
 const ENTITY_KEYS: Array<keyof OverlayEntities> = [
   'steps',
@@ -50,6 +61,7 @@ const WIDGET_ANCHORS: WidgetAnchor[] = ['top-left', 'top-right', 'bottom-left', 
 const WIDGET_TYPES: WidgetType[] = ['steps', 'temperature', 'sensor'];
 
 const maxHeartRate: Ref<number> = ref(DEFAULT_MAX_HEART_RATE);
+const heartRateLayout: Ref<HeartRateLayout> = ref({ ...DEFAULT_HEART_RATE_LAYOUT });
 const entities: Ref<OverlayEntities | null> = ref(null);
 const widgets: Ref<OverlayWidgetConfig[]> = ref([]);
 
@@ -83,16 +95,23 @@ const isValidWidgetProps = (value: unknown): value is OverlayWidgetProps | undef
   );
 };
 
+const isValidAnchorOffset = (value: Record<string, unknown>): boolean =>
+  typeof value.anchor === 'string' &&
+  WIDGET_ANCHORS.includes(value.anchor as WidgetAnchor) &&
+  isVector2(value.offset);
+
 const isValidWidget = (value: unknown): value is OverlayWidgetConfig =>
   isRecord(value) &&
   isNonEmptyString(value.id) &&
   typeof value.type === 'string' &&
   WIDGET_TYPES.includes(value.type as WidgetType) &&
-  typeof value.anchor === 'string' &&
-  WIDGET_ANCHORS.includes(value.anchor as WidgetAnchor) &&
-  isVector2(value.offset) &&
+  isValidAnchorOffset(value) &&
   isSize2(value.size) &&
+  (value.compactSize === undefined || isSize2(value.compactSize)) &&
   isValidWidgetProps(value.props);
+
+const isValidHeartRateLayout = (value: unknown): value is HeartRateLayout =>
+  isRecord(value) && isValidAnchorOffset(value);
 
 const isValidConfig = (value: unknown): value is OverlayConfig =>
   isRecord(value) &&
@@ -122,6 +141,15 @@ const loadOverlayConfig = (): Promise<boolean> => {
       if (typeof config.maxHeartRate === 'number') {
         maxHeartRate.value = config.maxHeartRate;
       }
+      if (isValidHeartRateLayout(config.heartRate)) {
+        heartRateLayout.value = config.heartRate;
+      } else {
+        heartRateLayout.value = { ...DEFAULT_HEART_RATE_LAYOUT };
+        console.warn(
+          '[OverlayConfig] Invalid or missing heartRate config; falling back to top-left, {x: 20, y: 20}',
+          config.heartRate
+        );
+      }
       return true;
     })
     .catch(error => {
@@ -137,10 +165,17 @@ const loadOverlayConfig = (): Promise<boolean> => {
 
 export const useOverlayConfig = (): {
   maxHeartRate: Ref<number>;
+  heartRateLayout: Ref<HeartRateLayout>;
   entities: Ref<OverlayEntities | null>;
   widgets: Ref<OverlayWidgetConfig[]>;
   ensureOverlayConfigLoaded: () => Promise<boolean>;
 } => {
   void loadOverlayConfig();
-  return { maxHeartRate, entities, widgets, ensureOverlayConfigLoaded: loadOverlayConfig };
+  return {
+    maxHeartRate,
+    heartRateLayout,
+    entities,
+    widgets,
+    ensureOverlayConfigLoaded: loadOverlayConfig,
+  };
 };

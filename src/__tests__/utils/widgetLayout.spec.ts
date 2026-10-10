@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeWidgetPosition } from '../../utils/widgetLayout';
+import { computeWidgetPosition, computeCornerStyle } from '../../utils/widgetLayout';
 
 describe('computeWidgetPosition', () => {
   const viewport = { width: 1920, height: 1080 };
@@ -39,6 +39,33 @@ describe('computeWidgetPosition', () => {
     expect(computeWidgetPosition('bottom-right', offset, size, smallerViewport)).toEqual({
       x: 1280 - 240 - 30,
       y: 900 - 190 - 30,
+    });
+  });
+});
+
+describe('computeCornerStyle', () => {
+  const offset = { x: 20, y: 20 };
+
+  it('anchors top-left to top/left, leaving bottom/right unset', () => {
+    expect(computeCornerStyle('top-left', offset)).toEqual({ top: '20px', left: '20px' });
+  });
+
+  it('anchors top-right to top/right, leaving bottom/left unset', () => {
+    expect(computeCornerStyle('top-right', offset)).toEqual({ top: '20px', right: '20px' });
+  });
+
+  it('anchors bottom-left to bottom/left, leaving top/right unset', () => {
+    expect(computeCornerStyle('bottom-left', offset)).toEqual({ bottom: '20px', left: '20px' });
+  });
+
+  it('anchors bottom-right to bottom/right, leaving top/left unset', () => {
+    expect(computeCornerStyle('bottom-right', offset)).toEqual({ bottom: '20px', right: '20px' });
+  });
+
+  it('reflects whatever offset is passed in, independent of size', () => {
+    expect(computeCornerStyle('bottom-right', { x: 5, y: 15 })).toEqual({
+      bottom: '15px',
+      right: '5px',
     });
   });
 });

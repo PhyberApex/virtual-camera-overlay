@@ -126,6 +126,29 @@ describe('App', () => {
     });
   });
 
+  it('uses the default 600x72 compact size when the steps widget has no configured compactSize', async () => {
+    shallowMount(App);
+    await flushPromises();
+    compactEnabled.value = true;
+    await nextTick();
+
+    const widget = widgets.value.find(w => w.id === 'steps-display');
+    expect(widget?.size).toEqual({ width: 600, height: 72 });
+  });
+
+  it("uses the steps widget's configured compactSize instead of the 600x72 default", async () => {
+    widgetConfigs.value = [
+      { ...defaultStepsWidgetConfig, compactSize: { width: 500, height: 50 } },
+    ];
+    shallowMount(App);
+    await flushPromises();
+    compactEnabled.value = true;
+    await nextTick();
+
+    const widget = widgets.value.find(w => w.id === 'steps-display');
+    expect(widget?.size).toEqual({ width: 500, height: 50 });
+  });
+
   it('hides the steps widget when connectionLost is true, even with non-zero data', async () => {
     steps.value = 1000;
     speed.value = 3;
