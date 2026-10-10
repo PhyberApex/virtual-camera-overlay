@@ -183,7 +183,8 @@ This system is flat by default with tonal layering via transparency. Shadows are
 - **Header Background:** Vital Green Deep (rgba(100, 160, 16, 0.9))
 - **Corner Style:** Medium rounded (10px)
 - **Padding:** 16px 24px for generous breathing room
-- **Conditional Visibility:** Only appears when steps, speed, and distance are all non-zero
+- **Conditional Visibility:** Appears when `steps > 0` and the connection is not lost. Speed and distance no longer gate visibility, so a paused treadmill (speed at 0 while steps/distance hold their values) still shows the widget; an unavailable treadmill still hides it because steps resets to 0 in that case.
+- **Paused State:** When visible and speed is 0, the speed value and its "km/h" label render in `--color-text-muted` instead of their normal colors. Steps and distance keep their normal appearance. No "paused" text, icon, or extra element is added.
 
 ### Widget: Steps, Compact Variant
 
@@ -193,6 +194,7 @@ This system is flat by default with tonal layering via transparency. Shadows are
 - **Height:** At most 72px by default
 - **Width:** Sized to fit a 5-digit step count, a 5-digit distance and a one-decimal speed without clipping or wrapping, by default
 - **Size:** Configurable per-widget via `compactSize` in `public/overlay-config.json` (`widgets[].compactSize`, `{width, height}`); omit it to keep the 600×72 default. Malformed, it fails the whole config's validation like any other widget field.
+- **Paused State:** Same dimmed-speed treatment as the standard variant — when speed is 0, the speed value and its "km/h" label render in `--color-text-muted`.
 - **Position:** Same bottom-right anchor as the normal variant, 30px from the right/bottom edges, in both modes and after a window resize — unaffected by `compactSize`, which only changes the footprint
 - **Typography & Background:** Unchanged from the base steps widget — metric values stay 1.8rem/700 with `tabular-nums`, labels stay 400 weight, same Vital Green semi-transparent background and `--radius-widget` radius. Compact means a smaller footprint, not smaller text.
 

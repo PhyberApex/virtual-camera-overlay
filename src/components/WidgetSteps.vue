@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import WidgetBase from './WidgetBase.vue';
 import { useHomeAssistant } from '../composables/useHomeAssistant';
 
@@ -10,6 +11,8 @@ defineProps<{
 }>();
 
 const { steps, speed, distance, compactEnabled } = useHomeAssistant();
+
+const isPaused = computed(() => speed.value === 0);
 </script>
 
 <template>
@@ -31,8 +34,10 @@ const { steps, speed, distance, compactEnabled } = useHomeAssistant();
         <span class="stats-label">meters</span>
       </div>
       <div class="stats-row">
-        <span class="stats-value">{{ speed.toFixed(1) }}</span>
-        <span class="stats-label">km/h</span>
+        <span class="stats-value" :class="{ 'stats-value--muted': isPaused }">{{
+          speed.toFixed(1)
+        }}</span>
+        <span class="stats-label" :class="{ 'stats-label--muted': isPaused }">km/h</span>
       </div>
     </div>
   </WidgetBase>
@@ -78,6 +83,11 @@ const { steps, speed, distance, compactEnabled } = useHomeAssistant();
   color: var(--color-text-secondary);
   margin-left: 6px; /* slightly more space */
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.stats-value--muted,
+.stats-label--muted {
+  color: var(--color-text-muted);
 }
 
 @media (max-width: 768px) {
