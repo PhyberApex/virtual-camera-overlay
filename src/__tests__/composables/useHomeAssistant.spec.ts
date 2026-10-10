@@ -52,7 +52,7 @@ vi.stubGlobal('import', {
       DEV: true,
       VITE_HA_TOKEN: 'test-token',
       VITE_HA_DEV_HOST: 'test-host',
-      VITE_HA_PORT: 'test-port',
+      VITE_HA_DEV_PORT: 'test-port',
     },
   },
 });

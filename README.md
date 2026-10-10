@@ -50,7 +50,7 @@ This application connects to a Home Assistant instance via WebSockets and displa
      ```
      VITE_HA_TOKEN=your_long_lived_access_token_here
      VITE_HA_DEV_HOST=192.168.0.13
-     VITE_HA_PORT=8123
+     VITE_HA_DEV_PORT=8123
      ```
 
 4. Start the development server:
@@ -96,7 +96,6 @@ body {
 | `VITE_HA_TOKEN`    | Home Assistant long-lived access token | -            |
 | `VITE_HA_DEV_HOST` | Host IP/domain for development         | 192.168.0.13 |
 | `VITE_HA_DEV_PORT` | Dev server websocket port              | 8123         |
-| `VITE_HA_PORT`     | Port for Home Assistant (prod)         | 8123         |
 
 ### Runtime token configuration
 

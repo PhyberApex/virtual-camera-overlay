@@ -4,9 +4,6 @@ import vueDevTools from 'vite-plugin-vue-devtools';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig(({ mode }) => {
-  const devHost = process.env.VITE_HA_DEV_HOST;
-  const port = process.env.VITE_HA_PORT;
-
   return {
     plugins: [
       vue({
@@ -24,15 +21,6 @@ export default defineConfig(({ mode }) => {
       __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: mode === 'development',
     },
     base: './',
-    server: {
-      proxy: {
-        '/api': {
-          target: `http://${devHost}:${port}`,
-          changeOrigin: true,
-          secure: false,
-        },
-      },
-    },
     test: {
       globals: true,
       environment: 'jsdom',
