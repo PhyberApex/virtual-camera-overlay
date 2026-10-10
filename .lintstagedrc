@@ -1,7 +1,8 @@
 {
-  "*.{js,vue}": [
+  "*.{ts,js,vue}": [
     "eslint --fix",
-    "prettier --write"
+    "prettier --write",
+    "vitest related --run --passWithNoTests"
   ],
   "*.{css,scss,html,json,md}": [
     "prettier --write"

@@ -19,9 +19,7 @@ describe('BeRightBack', () => {
   it('keeps each particle style stable across re-renders of the mounted instance', async () => {
     const wrapper = mount(BeRightBack);
 
-    const stylesBefore = wrapper
-      .findAll('.particle-emoji')
-      .map((img) => img.attributes('style'));
+    const stylesBefore = wrapper.findAll('.particle-emoji').map(img => img.attributes('style'));
     expect(stylesBefore).toHaveLength(15);
 
     // Force a re-render without unmounting; particle styles must not change.
@@ -30,9 +28,7 @@ describe('BeRightBack', () => {
     await wrapper.vm.$forceUpdate();
     await nextTick();
 
-    const stylesAfter = wrapper
-      .findAll('.particle-emoji')
-      .map((img) => img.attributes('style'));
+    const stylesAfter = wrapper.findAll('.particle-emoji').map(img => img.attributes('style'));
 
     expect(stylesAfter).toEqual(stylesBefore);
   });

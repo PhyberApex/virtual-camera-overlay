@@ -22,7 +22,8 @@ steps:
       - corepack enable
       - corepack prepare pnpm@10 --activate
       - pnpm install --frozen-lockfile
-      - pnpm lint
+      - pnpm lint:check
+      - npx prettier --check src scripts
       - pnpm typecheck
       - pnpm test:coverage
       - cp .env.example .env || true
@@ -45,7 +46,8 @@ steps:
       - corepack enable
       - corepack prepare pnpm@10 --activate
       - pnpm install --frozen-lockfile
-      - pnpm lint
+      - pnpm lint:check
+      - npx prettier --check src scripts
       - pnpm typecheck
       - pnpm test:coverage
       - cp .env.example .env || true
