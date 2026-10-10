@@ -29,7 +29,7 @@
           :id="widget.id"
           :position="widget.position"
           :size="widget.size"
-          :should-show="steps !== 0 && speed !== 0 && distance !== 0 && !connectionLost"
+          :should-show="steps > 0 && !connectionLost"
         />
       </template>
     </div>
@@ -49,7 +49,7 @@ import { useWidgetManager, type Widget } from './composables/useWidgetManager';
 import { useOverlayConfig, type OverlayWidgetConfig } from './composables/useOverlayConfig';
 import { computeWidgetPosition } from './utils/widgetLayout';
 
-const { steps, speed, distance, compactEnabled, connectionLost } = useHomeAssistant();
+const { steps, compactEnabled, connectionLost } = useHomeAssistant();
 const { widgets, addWidget, updateWidget } = useWidgetManager();
 const { widgets: widgetConfigs, ensureOverlayConfigLoaded } = useOverlayConfig();
 

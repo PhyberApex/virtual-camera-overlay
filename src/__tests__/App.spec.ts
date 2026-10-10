@@ -162,6 +162,25 @@ describe('App', () => {
     expect(wrapper.findComponent(WidgetSteps).props('shouldShow')).toBe(false);
   });
 
+  it('shows the steps widget when the treadmill is paused (speed is 0 but steps remain)', async () => {
+    steps.value = 1000;
+    speed.value = 0;
+    distance.value = 500;
+    const wrapper = shallowMount(App);
+    await flushPromises();
+    expect(wrapper.findComponent(WidgetSteps).props('shouldShow')).toBe(true);
+  });
+
+  it('hides the steps widget when steps is 0, regardless of speed, distance, or connection state', async () => {
+    steps.value = 0;
+    speed.value = 3;
+    distance.value = 500;
+    connectionLost.value = false;
+    const wrapper = shallowMount(App);
+    await flushPromises();
+    expect(wrapper.findComponent(WidgetSteps).props('shouldShow')).toBe(false);
+  });
+
   it('keeps the 30px margin after a window resize, in both modes', async () => {
     shallowMount(App);
     await flushPromises();
