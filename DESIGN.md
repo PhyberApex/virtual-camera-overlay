@@ -78,9 +78,8 @@ components:
     padding: '{spacing.sm} {spacing.md}'
     showZoneName: true # REFINED: displays zone text for viewers
   brb-overlay:
-    backgroundColor: 'rgba(0, 0, 0, 0.85)' # REFINED: semi-transparent like widgets
-    backdropBlur: '12px' # REFINED: cohesive with widget blur
-    accentColor: '{vital-green}' # REFINED: matches overlay theme (was indigo)
+    backgroundColor: '#000000' # fully opaque: a privacy screen that hides the entire webcam feed
+    accentColor: '{vital-green}' # matches overlay theme (was indigo)
 ---
 
 # Design System: Virtual Camera Overlay
@@ -295,10 +294,10 @@ The following refinements were applied to elevate the design from "functional" t
 
 **BeRightBack Cohesion:**
 
-- Changed from solid indigo-900 → semi-transparent `rgba(0, 0, 0, 0.85)` with `backdrop-blur: 12px`
+- Background stays fully opaque black, unlike the semi-transparent widgets — this is a privacy screen that hides the entire webcam feed, not a stylistic choice for cohesion with the widget look
 - Changed accent from indigo → vital green to match overlay theme
-- Simplified from raining images → single centered image with subtle pulse
-- Now feels like part of the same design system instead of a different app
+- Kept the 15 floating particle images drifting upward across the screen
+- Accent color now feels like part of the same design system, while opacity remains a deliberate exception for privacy
 
 **Feature Removals:**
 
