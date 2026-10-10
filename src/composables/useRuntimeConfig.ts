@@ -16,7 +16,7 @@ const fetchRuntimeConfig = async (): Promise<RuntimeConfig | null> => {
     return fetchPromise;
   }
 
-  fetchPromise = fetch('/app-config.json', { cache: 'no-cache' })
+  fetchPromise = fetch('app-config.json', { cache: 'no-cache' })
     .then(async response => {
       if (!response.ok) {
         throw new Error(`Config request failed with status ${response.status}`);
