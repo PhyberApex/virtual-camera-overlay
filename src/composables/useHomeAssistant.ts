@@ -373,7 +373,7 @@ const connectToHAInner = async (isReconnect: boolean): Promise<void> => {
       connectionLost.value = false;
 
       for (const [entityId, state] of Object.entries(eventData)) {
-        if (state.s !== 'unavailable') {
+        if (!isUnavailableState(state.s)) {
           entityStates.value[entityId] = state.s;
         }
       }
@@ -381,28 +381,40 @@ const connectToHAInner = async (isReconnect: boolean): Promise<void> => {
       const stepsData = eventData[configuredEntities.steps]?.s;
       if (isUnavailableState(stepsData)) {
         steps.value = 0;
-      } else if (typeof stepsData === 'number') {
-        steps.value = stepsData;
+      } else if (typeof stepsData === 'number' || typeof stepsData === 'string') {
+        const parsed = parseInt(String(stepsData), 10);
+        if (Number.isFinite(parsed)) {
+          steps.value = parsed;
+        }
       }
 
       const distanceData = eventData[configuredEntities.distance]?.s;
       if (isUnavailableState(distanceData)) {
         distance.value = 0;
-      } else if (typeof distanceData === 'number') {
-        distance.value = distanceData;
+      } else {
+        const parsed = parseFiniteFloat(distanceData);
+        if (parsed !== undefined) {
+          distance.value = parsed;
+        }
       }
 
       const speedData = eventData[configuredEntities.speed]?.s;
       if (isUnavailableState(speedData)) {
         speed.value = 0;
-      } else if (typeof speedData === 'number') {
-        speed.value = speedData;
+      } else {
+        const parsed = parseFiniteFloat(speedData);
+        if (parsed !== undefined) {
+          speed.value = parsed;
+        }
       }
       const heartData = eventData[configuredEntities.heartRate]?.s;
       if (isUnavailableState(heartData)) {
         heartRate.value = 0;
-      } else if (typeof heartData === 'number') {
-        heartRate.value = heartData;
+      } else {
+        const parsed = parseFiniteFloat(heartData);
+        if (parsed !== undefined) {
+          heartRate.value = parsed;
+        }
       }
 
       if (configuredEntities.brbToggle in eventData) {
@@ -417,7 +429,7 @@ const connectToHAInner = async (isReconnect: boolean): Promise<void> => {
 
       for (const [entityId, diff] of Object.entries(eventData)) {
         const newState = diff['+']?.s;
-        if (newState !== undefined) {
+        if (newState !== undefined && !isUnavailableState(newState)) {
           entityStates.value[entityId] = newState;
         }
       }
