@@ -24,9 +24,8 @@ describe('useRuntimeConfig', () => {
     const fetchMock = mockFetchResolving({ haToken: 'token' });
     vi.stubGlobal('fetch', fetchMock);
 
-    const { getHaToken, invalidateRuntimeConfig } = await import(
-      '../../composables/useRuntimeConfig'
-    );
+    const { getHaToken, invalidateRuntimeConfig } =
+      await import('../../composables/useRuntimeConfig');
     await getHaToken();
     await getHaToken();
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -48,13 +47,16 @@ describe('useRuntimeConfig', () => {
           })
       )
       .mockImplementationOnce(() =>
-        Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ haToken: 'token-2' }) })
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ haToken: 'token-2' }),
+        })
       );
     vi.stubGlobal('fetch', fetchMock);
 
-    const { getHaToken, invalidateRuntimeConfig } = await import(
-      '../../composables/useRuntimeConfig'
-    );
+    const { getHaToken, invalidateRuntimeConfig } =
+      await import('../../composables/useRuntimeConfig');
     const firstTokenRequest = getHaToken();
 
     invalidateRuntimeConfig();
@@ -63,7 +65,11 @@ describe('useRuntimeConfig', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(secondToken).toBe('token-2');
 
-    resolveFirstFetch?.({ ok: true, status: 200, json: () => Promise.resolve({ haToken: 'token-1' }) });
+    resolveFirstFetch?.({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ haToken: 'token-1' }),
+    });
     await firstTokenRequest;
 
     // The abandoned fetch resolving after the fresh one must not clobber the
