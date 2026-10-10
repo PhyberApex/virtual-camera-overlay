@@ -65,5 +65,11 @@ describe('useRuntimeConfig', () => {
 
     resolveFirstFetch?.({ ok: true, status: 200, json: () => Promise.resolve({ haToken: 'token-1' }) });
     await firstTokenRequest;
+
+    // The abandoned fetch resolving after the fresh one must not clobber the
+    // cache with stale data.
+    const thirdToken = await getHaToken();
+    expect(thirdToken).toBe('token-2');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
