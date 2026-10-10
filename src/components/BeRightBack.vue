@@ -1,20 +1,14 @@
 <template>
   <div v-if="brbEnabled" class="brb-overlay">
-    <!-- GIMMICKY: Floating emoji particles background -->
+    <!-- Floating emoji particles background -->
     <div class="particles">
       <img
-        v-for="i in 15"
-        :key="i"
-        :src="getRandomEmoji(i)"
+        v-for="particle in particles"
+        :key="particle.key"
+        :src="particle.src"
         alt=""
         class="particle-emoji"
-        :style="{
-          left: `${Math.random() * 100}%`,
-          top: `${Math.random() * 100}%`,
-          animationDelay: `${Math.random() * 5}s`,
-          animationDuration: `${8 + Math.random() * 4}s`,
-          width: `${40 + Math.random() * 30}px`,
-        }"
+        :style="particle.style"
       />
     </div>
 
@@ -54,26 +48,44 @@ const emojiImages = [
   'rain/mortyxmas.png',
 ];
 
-// Get random emoji for each particle (deterministic based on index)
-const getRandomEmoji = (index: number): string => {
-  return emojiImages[index % emojiImages.length]!;
-};
+interface Particle {
+  key: number;
+  src: string;
+  style: {
+    left: string;
+    top: string;
+    animationDelay: string;
+    animationDuration: string;
+    width: string;
+  };
+}
+
+// Computed once per mount so re-renders don't jitter the particle layout.
+const particles: Particle[] = Array.from({ length: 15 }, (_, i) => ({
+  key: i,
+  src: emojiImages[i % emojiImages.length]!,
+  style: {
+    left: `${Math.random() * 100}%`,
+    top: `${Math.random() * 100}%`,
+    animationDelay: `${Math.random() * 5}s`,
+    animationDuration: `${8 + Math.random() * 4}s`,
+    width: `${40 + Math.random() * 30}px`,
+  },
+}));
 </script>
 
 <style scoped>
-/* REFINED: matches main overlay aesthetic with vital green + FULLY OPAQUE */
 .brb-overlay {
   position: fixed;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #000000; /* FULLY OPAQUE - hides entire webcam */
+  background-color: #000000; /* fully opaque: hides the entire webcam feed */
   z-index: 50;
   overflow: hidden;
 }
 
-/* GIMMICKY: Floating emoji particles */
 .particles {
   position: absolute;
   inset: 0;
@@ -121,7 +133,6 @@ const getRandomEmoji = (index: number): string => {
   padding: 0 1rem;
 }
 
-/* REFINED: vital green instead of indigo */
 .brb-title {
   font-size: clamp(2.5rem, 5vw, 4rem);
   font-weight: 700;
@@ -140,7 +151,6 @@ const getRandomEmoji = (index: number): string => {
   text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.5);
 }
 
-/* REFINED: vital green dots instead of white */
 .brb-dots {
   margin-top: 2rem;
   display: flex;
