@@ -19,8 +19,7 @@ steps:
     when:
       - event: pull_request
     commands:
-      - corepack enable
-      - corepack prepare pnpm@10 --activate
+      - npm install -g pnpm@10
       - pnpm install --frozen-lockfile
       - pnpm lint:check
       - npx prettier --check src scripts
@@ -43,8 +42,7 @@ steps:
     volumes:
       - pnpm_cache:/root/.local/share/pnpm/store
     commands:
-      - corepack enable
-      - corepack prepare pnpm@10 --activate
+      - npm install -g pnpm@10
       - pnpm install --frozen-lockfile
       - pnpm lint:check
       - npx prettier --check src scripts
