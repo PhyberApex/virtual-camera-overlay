@@ -13,7 +13,7 @@ labels:
 
 steps:
   - name: build-test-lint
-    image: node:24
+    image: node:26
     volumes:
       - pnpm_cache:/root/.local/share/pnpm/store
     when:
@@ -30,7 +30,7 @@ steps:
       - pnpm build
 
   - name: deploy
-    image: node:24
+    image: node:26
     environment:
       HA_TOKEN:
         from_secret: ha_token
