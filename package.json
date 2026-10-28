@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "packageManager": "pnpm@10.34.9",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -26,7 +27,7 @@
     "@eslint/js": "^10.0.0",
     "@tailwindcss/vite": "^4.0.15",
     "@testing-library/vue": "^8.1.0",
-    "@types/node": "^24.0.0",
+    "@types/node": "^26.0.0",
     "@typescript-eslint/eslint-plugin": "^8.28.0",
     "@typescript-eslint/parser": "^8.28.0",
     "@vitejs/plugin-vue": "^6.0.0",

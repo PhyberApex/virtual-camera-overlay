@@ -13,14 +13,13 @@ labels:
 
 steps:
   - name: build-test-lint
-    image: node:24
+    image: node:26
     volumes:
       - pnpm_cache:/root/.local/share/pnpm/store
     when:
       - event: pull_request
     commands:
-      - corepack enable
-      - corepack prepare pnpm@10 --activate
+      - npm install -g pnpm@10
       - pnpm install --frozen-lockfile
       - pnpm lint:check
       - npx prettier --check src scripts
@@ -30,7 +29,7 @@ steps:
       - pnpm build
 
   - name: deploy
-    image: node:24
+    image: node:26
     environment:
       HA_TOKEN:
         from_secret: ha_token
@@ -43,8 +42,7 @@ steps:
     volumes:
       - pnpm_cache:/root/.local/share/pnpm/store
     commands:
-      - corepack enable
-      - corepack prepare pnpm@10 --activate
+      - npm install -g pnpm@10
       - pnpm install --frozen-lockfile
       - pnpm lint:check
       - npx prettier --check src scripts
