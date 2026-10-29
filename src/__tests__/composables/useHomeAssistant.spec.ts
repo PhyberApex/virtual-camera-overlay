@@ -210,7 +210,7 @@ describe('useHomeAssistant - websocket URL', () => {
   });
 
   const stubLocation = (protocol: string, host: string): void => {
-    vi.stubGlobal('location', { protocol, host, hostname: host.split(':')[0] });
+    vi.stubGlobal('location', { protocol, host });
   };
 
   it('uses wss without a port when served from the default https port', async () => {
