@@ -65,6 +65,12 @@ const heartRateLayout: Ref<HeartRateLayout> = ref({ ...DEFAULT_HEART_RATE_LAYOUT
 const entities: Ref<OverlayEntities | null> = ref(null);
 const widgets: Ref<OverlayWidgetConfig[]> = ref([]);
 
+// True once a valid config has been applied; consumers watch it to build widgets.
+const configLoaded: Ref<boolean> = ref(false);
+// True when the last failure was the file being unreachable (network/HTTP), which is retried.
+// An invalid config is fatal and stays cached.
+const configUnreachable: Ref<boolean> = ref(false);
+
 let fetchPromise: Promise<boolean> | null = null;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -124,13 +130,21 @@ const loadOverlayConfig = (): Promise<boolean> => {
     return fetchPromise;
   }
 
+  let unreachable = false;
   fetchPromise = fetch('overlay-config.json', { cache: 'no-cache' })
-    .then(async response => {
-      if (!response.ok) {
-        throw new Error(`Overlay config request failed with status ${response.status}`);
+    .then(
+      response => {
+        if (!response.ok) {
+          unreachable = true;
+          throw new Error(`Overlay config request failed with status ${response.status}`);
+        }
+        return response.json() as Promise<unknown>;
+      },
+      (error: unknown) => {
+        unreachable = true;
+        throw error;
       }
-      return (await response.json()) as unknown;
-    })
+    )
     .then(config => {
       if (!isValidConfig(config)) {
         throw new Error('Overlay config failed validation');
@@ -150,13 +164,22 @@ const loadOverlayConfig = (): Promise<boolean> => {
           config.heartRate
         );
       }
+      configUnreachable.value = false;
+      configLoaded.value = true;
       return true;
     })
     .catch(error => {
-      console.error(
-        '[OverlayConfig] Failed to load a valid overlay-config.json; rendering nothing',
-        error
-      );
+      configUnreachable.value = unreachable;
+      if (unreachable) {
+        // Drop the cached promise so the next call re-fetches.
+        fetchPromise = null;
+        console.warn('[OverlayConfig] overlay-config.json unreachable; will retry', error);
+      } else {
+        console.error(
+          '[OverlayConfig] Failed to load a valid overlay-config.json; rendering nothing',
+          error
+        );
+      }
       return false;
     });
 
@@ -168,6 +191,8 @@ export const useOverlayConfig = (): {
   heartRateLayout: Ref<HeartRateLayout>;
   entities: Ref<OverlayEntities | null>;
   widgets: Ref<OverlayWidgetConfig[]>;
+  configLoaded: Ref<boolean>;
+  configUnreachable: Ref<boolean>;
   ensureOverlayConfigLoaded: () => Promise<boolean>;
 } => {
   void loadOverlayConfig();
@@ -176,6 +201,8 @@ export const useOverlayConfig = (): {
     heartRateLayout,
     entities,
     widgets,
+    configLoaded,
+    configUnreachable,
     ensureOverlayConfigLoaded: loadOverlayConfig,
   };
 };

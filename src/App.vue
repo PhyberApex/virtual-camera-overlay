@@ -51,7 +51,7 @@ import { computeWidgetPosition } from './utils/widgetLayout';
 
 const { steps, compactEnabled, connectionLost } = useHomeAssistant();
 const { widgets, addWidget, updateWidget } = useWidgetManager();
-const { widgets: widgetConfigs, ensureOverlayConfigLoaded } = useOverlayConfig();
+const { widgets: widgetConfigs, configLoaded, ensureOverlayConfigLoaded } = useOverlayConfig();
 
 const getWidgetEntityId = (widget: Widget): string =>
   (widget.props?.entityId as string | undefined) ?? '';
@@ -95,14 +95,26 @@ const updateStepsWidgetLayouts = (): void => {
     .forEach(updateWidgetLayout);
 };
 
-onMounted(async () => {
-  const configValid = await ensureOverlayConfigLoaded();
-  if (!configValid) return;
+let widgetsBuilt = false;
+
+const buildWidgets = (): void => {
+  if (widgetsBuilt) return;
+  widgetsBuilt = true;
 
   widgetConfigs.value.forEach(widgetConfig => addWidget(buildWidget(widgetConfig)));
 
   // Update widget size and position on window resize
   window.addEventListener('resize', updateAllWidgetLayouts);
+};
+
+// The config may only load after retries, so build widgets whenever it becomes valid.
+watch(configLoaded, loaded => {
+  if (loaded) buildWidgets();
+});
+
+onMounted(async () => {
+  const configValid = await ensureOverlayConfigLoaded();
+  if (configValid) buildWidgets();
 });
 
 onUnmounted(() => {

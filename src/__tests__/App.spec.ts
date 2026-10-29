@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { shallowMount, flushPromises } from '@vue/test-utils';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { shallowMount, flushPromises, enableAutoUnmount } from '@vue/test-utils';
 import App from '../App.vue';
 import WidgetSteps from '../components/WidgetSteps.vue';
 import { nextTick, ref } from 'vue';
@@ -60,15 +60,20 @@ const defaultStepsWidgetConfig: OverlayWidgetConfig = {
 
 const widgetConfigs = ref<OverlayWidgetConfig[]>([defaultStepsWidgetConfig]);
 const configValid = ref(true);
+const configLoaded = ref(true);
 
 vi.mock('../composables/useOverlayConfig', () => ({
   useOverlayConfig: () => ({
     widgets: widgetConfigs,
     entities: ref(null),
     maxHeartRate: ref(185),
+    configLoaded,
     ensureOverlayConfigLoaded: () => Promise.resolve(configValid.value),
   }),
 }));
+
+// Mounted apps share the mocked config refs, so unmount each so only the current app reacts.
+enableAutoUnmount(afterEach);
 
 describe('App', () => {
   beforeEach(() => {
@@ -81,6 +86,7 @@ describe('App', () => {
     widgets.value = [];
     widgetConfigs.value = [defaultStepsWidgetConfig];
     configValid.value = true;
+    configLoaded.value = true;
     addWidget.mockClear();
     updateWidget.mockClear();
   });
@@ -252,5 +258,27 @@ describe('App', () => {
 
     expect(widgets.value).toHaveLength(0);
     expect(addWidget).not.toHaveBeenCalled();
+  });
+
+  it('adds widgets without remounting once the config loads after an initial failure', async () => {
+    configValid.value = false;
+    configLoaded.value = false;
+
+    shallowMount(App);
+    await flushPromises();
+    expect(addWidget).not.toHaveBeenCalled();
+
+    configLoaded.value = true;
+    await flushPromises();
+
+    expect(addWidget).toHaveBeenCalledTimes(1);
+    expect(widgets.value.map(w => w.id)).toEqual(['steps-display']);
+  });
+
+  it('does not add widgets twice when the config is already loaded on mount', async () => {
+    shallowMount(App);
+    await flushPromises();
+
+    expect(addWidget).toHaveBeenCalledTimes(1);
   });
 });
