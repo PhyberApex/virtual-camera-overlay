@@ -121,10 +121,14 @@ class SyncMockWebSocket {
   constructor() {
     SyncMockWebSocket.instances.push(this);
   }
+  sent: string[] = [];
+  closed = false;
   send(data: string): void {
-    void data;
+    this.sent.push(data);
   }
-  close() {}
+  close() {
+    this.closed = true;
+  }
 }
 
 const createHarnessComponent = (
@@ -774,5 +778,62 @@ describe('useHomeAssistant - widget entity subscription', () => {
 
     expect(subscribeMessage?.entity_ids).toContain('sensor.custom_widget_entity');
     expect(subscribeMessage?.entity_ids).toContain('sensor.ksmb_v1_7aed_current_step_count');
+  });
+});
+
+describe('useHomeAssistant - heartbeat', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.useRealTimers();
+  });
+
+  const sentFrames = (socket: SyncMockWebSocket): Array<{ id?: number; type: string }> =>
+    socket.sent.map(frame => JSON.parse(frame));
+
+  const lastPing = (socket: SyncMockWebSocket): { id: number; type: string } => {
+    const pings = sentFrames(socket).filter(frame => frame.type === 'ping');
+    return pings[pings.length - 1] as { id: number; type: string };
+  };
+
+  it('sends pings with an integer id greater than the subscribe_entities id', async () => {
+    vi.useFakeTimers();
+    const { socket } = await mountFresh();
+    await completeAuth(socket);
+
+    vi.advanceTimersByTime(30_000);
+
+    const subscribe = sentFrames(socket).find(frame => frame.type === 'subscribe_entities');
+    const ping = lastPing(socket);
+    expect(ping).toEqual({ id: expect.any(Number), type: 'ping' });
+    expect(Number.isInteger(ping.id)).toBe(true);
+    expect(ping.id).toBeGreaterThan(subscribe!.id!);
+  });
+
+  it('does not reconnect while the server keeps answering pongs', async () => {
+    vi.useFakeTimers();
+    const { socket } = await mountFresh();
+    await completeAuth(socket);
+
+    for (let i = 0; i < 3; i += 1) {
+      vi.advanceTimersByTime(30_000);
+      socket.onmessage!({ data: JSON.stringify({ id: lastPing(socket).id, type: 'pong' }) });
+    }
+    vi.advanceTimersByTime(30_000);
+
+    expect(socket.closed).toBe(false);
+    expect(SyncMockWebSocket.instances.length).toBe(1);
+  });
+
+  it('forces a reconnect when pongs stop arriving', async () => {
+    vi.useFakeTimers();
+    const { socket } = await mountFresh();
+    await completeAuth(socket);
+
+    vi.advanceTimersByTime(90_000);
+    expect(socket.closed).toBe(true);
+
+    vi.advanceTimersByTime(2_000);
+    await flushPromises();
+    expect(SyncMockWebSocket.instances.length).toBe(2);
   });
 });

@@ -141,7 +141,7 @@ const startHeartbeat = (): void => {
       return;
     }
     try {
-      socket.send(JSON.stringify({ type: 'ping' }));
+      socket.send(JSON.stringify({ id: msgId++, type: 'ping' }));
       missedHeartbeats += 1;
       if (missedHeartbeats > HEARTBEAT_MISSES_ALLOWED) {
         console.warn('[HomeAssistant] Missed heartbeats, forcing reconnect');
