@@ -589,13 +589,19 @@ interface HomeAssistantReturn {
   setCompactEnabled?: (enabled: boolean) => void;
 }
 
+let consumers = 0;
+
 export function useHomeAssistant(isDevPanel: boolean = false): HomeAssistantReturn {
   onMounted(() => {
+    consumers += 1;
     void connectToHA();
   });
 
   onUnmounted(() => {
+    consumers -= 1;
+    if (consumers > 0) return;
     cleanupSocket();
+    connectionState.value = 'disconnected';
     stopMockStepData();
     stopMockHeartData();
   });

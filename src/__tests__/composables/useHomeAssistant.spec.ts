@@ -305,6 +305,41 @@ describe('useHomeAssistant - concurrent mounts', () => {
   });
 });
 
+describe('useHomeAssistant - consumer ref counting', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('keeps the shared socket alive until the last consumer unmounts', async () => {
+    vi.resetModules();
+    SyncMockWebSocket.instances = [];
+    vi.stubGlobal('WebSocket', SyncMockWebSocket);
+    vi.stubEnv('VITE_HA_DEV_HOST', 'sync-test-host');
+    vi.stubEnv('VITE_HA_DEV_PORT', '8123');
+
+    const { useHomeAssistant: freshUseHomeAssistant } =
+      await import('../../composables/useHomeAssistant.js');
+
+    let result: ReturnType<typeof freshUseHomeAssistant>;
+    const first = mount(createHarnessComponent(freshUseHomeAssistant, false, r => (result = r)));
+    const second = mount(createHarnessComponent(freshUseHomeAssistant, false, () => {}));
+    await flushPromises();
+
+    const socket = SyncMockWebSocket.instances[0]!;
+    await completeAuth(socket);
+    expect(result!.connectionState.value).toBe('connected');
+
+    first.unmount();
+    expect(socket.closed).toBe(false);
+    expect(result!.connectionState.value).toBe('connected');
+    expect(socket.onmessage).not.toBeNull();
+
+    second.unmount();
+    expect(socket.closed).toBe(true);
+    expect(result!.connectionState.value).toBe('disconnected');
+  });
+});
+
 describe('useHomeAssistant - compactEnabled entity sync', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
