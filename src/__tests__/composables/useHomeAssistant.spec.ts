@@ -836,4 +836,70 @@ describe('useHomeAssistant - heartbeat', () => {
     await flushPromises();
     expect(SyncMockWebSocket.instances.length).toBe(2);
   });
+
+  describe('late events from a replaced socket', () => {
+    const forceReconnectAndReplaceWithResult = async (): Promise<{
+      result: Awaited<ReturnType<typeof mountFresh>>['result'];
+      stale: SyncMockWebSocket;
+      fresh: SyncMockWebSocket;
+      staleHandlers: Pick<SyncMockWebSocket, 'onclose' | 'onerror' | 'onmessage'>;
+    }> => {
+      const { result, socket } = await mountFresh();
+      await completeAuth(socket);
+      const staleHandlers = {
+        onclose: socket.onclose,
+        onerror: socket.onerror,
+        onmessage: socket.onmessage,
+      };
+
+      vi.advanceTimersByTime(90_000);
+      vi.advanceTimersByTime(2_000);
+      await flushPromises();
+      const fresh = SyncMockWebSocket.instances[SyncMockWebSocket.instances.length - 1]!;
+      expect(fresh).not.toBe(socket);
+      return { result, stale: socket, fresh, staleHandlers };
+    };
+
+    it('detaches handlers from the old socket when forcing a reconnect', async () => {
+      vi.useFakeTimers();
+      const { stale } = await forceReconnectAndReplaceWithResult();
+      expect(stale.onclose).toBeNull();
+      expect(stale.onerror).toBeNull();
+      expect(stale.onmessage).toBeNull();
+    });
+
+    it('ignores a late close from the replaced socket', async () => {
+      vi.useFakeTimers();
+      const { result, fresh, staleHandlers } = await forceReconnectAndReplaceWithResult();
+      staleHandlers.onclose!();
+      vi.advanceTimersByTime(1_000);
+      await flushPromises();
+
+      expect(fresh.closed).toBe(false);
+      expect(SyncMockWebSocket.instances.length).toBe(2);
+      expect(result.connectionState.value).toBe('authenticating');
+    });
+
+    it('ignores a late error from the replaced socket', async () => {
+      vi.useFakeTimers();
+      const { result, fresh, staleHandlers } = await forceReconnectAndReplaceWithResult();
+      staleHandlers.onerror!();
+      vi.advanceTimersByTime(1_000);
+      await flushPromises();
+
+      expect(fresh.closed).toBe(false);
+      expect(SyncMockWebSocket.instances.length).toBe(2);
+      expect(result.connectionState.value).toBe('authenticating');
+    });
+
+    it('ignores a late message from the replaced socket', async () => {
+      vi.useFakeTimers();
+      const { result, fresh, staleHandlers } = await forceReconnectAndReplaceWithResult();
+      await staleHandlers.onmessage!({ data: JSON.stringify({ type: 'auth_ok' }) });
+      await flushPromises();
+
+      expect(fresh.closed).toBe(false);
+      expect(result.connectionState.value).toBe('authenticating');
+    });
+  });
 });

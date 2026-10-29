@@ -154,14 +154,21 @@ const startHeartbeat = (): void => {
   }, HEARTBEAT_INTERVAL);
 };
 
+const detachAndClose = (): void => {
+  if (!socket) return;
+  socket.onopen = null;
+  socket.onclose = null;
+  socket.onerror = null;
+  socket.onmessage = null;
+  socket.close();
+  socket = null;
+};
+
 const forceReconnect = (): void => {
   resetHeartbeat();
   resetReconnectTimer();
   clearAuthDeadlineTimer();
-  if (socket) {
-    socket.close();
-    socket = null;
-  }
+  detachAndClose();
   connectionState.value = 'disconnected';
 
   scheduleReconnect();
@@ -175,14 +182,7 @@ const updateAuthenticatedState = (): void => {
 };
 
 const cleanupSocket = (): void => {
-  if (socket) {
-    socket.onopen = null;
-    socket.onclose = null;
-    socket.onerror = null;
-    socket.onmessage = null;
-    socket.close();
-    socket = null;
-  }
+  detachAndClose();
 
   resetHeartbeat();
   resetReconnectTimer();
@@ -270,7 +270,7 @@ const stopMockHeartData = (): void => {
 const handleMissingToken = (): void => {
   console.error('[HomeAssistant] Missing Home Assistant token. Aborting connection.');
   connectionState.value = 'disconnected';
-  socket?.close();
+  detachAndClose();
 };
 
 const connectToHA = async (isReconnect = false): Promise<void> => {
@@ -316,25 +316,29 @@ const connectToHAInner = async (isReconnect: boolean): Promise<void> => {
     `Connecting to Home Assistant at ${url} (${isDev ? 'development' : 'production'} mode)`
   );
   connectionState.value = 'authenticating';
-  socket = new WebSocket(url);
+  const ws = new WebSocket(url);
+  socket = ws;
   authOkReceived = false;
   clearAuthDeadlineTimer();
   authDeadlineTimer = window.setTimeout(handleAuthDeadlineElapsed, AUTH_TIMEOUT_PERIOD);
 
-  socket.onopen = (): void => {
+  ws.onopen = (): void => {
     console.log('WebSocket connection established, authenticating...');
   };
 
-  socket.onerror = (error): void => {
+  ws.onerror = (error): void => {
+    if (socket !== ws) return;
     console.error('[HomeAssistant] WebSocket error', error);
     handleConnectionDrop();
   };
 
-  socket.onclose = (): void => {
+  ws.onclose = (): void => {
+    if (socket !== ws) return;
     handleConnectionDrop();
   };
 
-  socket.onmessage = async (event: MessageEvent): Promise<void> => {
+  ws.onmessage = async (event: MessageEvent): Promise<void> => {
+    if (socket !== ws) return;
     const message: HAMessage = JSON.parse(event.data);
     console.log('Received message:', message);
 
