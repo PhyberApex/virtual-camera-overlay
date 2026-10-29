@@ -19,7 +19,7 @@ interface HAEventMessage {
   type: 'event';
   event: {
     a?: Record<string, { s: string | number }>;
-    c?: Record<string, { '+': { s: string | number } }>;
+    c?: Record<string, { '+'?: { s?: string | number } }>;
   };
 }
 
@@ -28,6 +28,18 @@ interface HAPongMessage {
 }
 
 type HAMessage = HAAuthRequiredMessage | HAAuthOkMessage | HAEventMessage | HAPongMessage;
+
+// A change entry only carries `s` when the state itself changed; attribute-only
+// diffs must leave the toggle untouched.
+function applyToggleDiff(
+  diff: { '+'?: { s?: string | number } } | undefined,
+  target: Ref<boolean>
+) {
+  const newState = diff?.['+']?.s;
+  if (newState !== undefined) {
+    target.value = newState === 'on';
+  }
+}
 
 const steps: Ref<number> = ref(0);
 const speed: Ref<number> = ref(0);
@@ -477,18 +489,9 @@ const connectToHAInner = async (isReconnect: boolean): Promise<void> => {
         }
       }
 
-      const brbDiff = eventData[configuredEntities.brbToggle];
-      if (brbDiff) {
-        brbEnabled.value = brbDiff['+']?.s === 'on';
-      }
-      const heartToggleDiff = eventData[configuredEntities.heartToggle];
-      if (heartToggleDiff) {
-        heartEnabled.value = heartToggleDiff['+']?.s === 'on';
-      }
-      const compactDiff = eventData[configuredEntities.compactToggle];
-      if (compactDiff) {
-        compactEnabled.value = compactDiff['+']?.s === 'on';
-      }
+      applyToggleDiff(eventData[configuredEntities.brbToggle], brbEnabled);
+      applyToggleDiff(eventData[configuredEntities.heartToggle], heartEnabled);
+      applyToggleDiff(eventData[configuredEntities.compactToggle], compactEnabled);
 
       const heartRateDiff = eventData[configuredEntities.heartRate];
       if (heartRateDiff) {

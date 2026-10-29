@@ -255,6 +255,37 @@ describe('useHomeAssistant - compactEnabled entity sync', () => {
   });
 });
 
+describe.each([
+  ['brbToggle', 'input_boolean.janis_vco_brb', 'brbEnabled'],
+  ['heartToggle', 'input_boolean.janis_vco_heart', 'heartEnabled'],
+  ['compactToggle', 'input_boolean.janis_vco_compact', 'compactEnabled'],
+] as const)('useHomeAssistant - %s change events', (_name, entityId, key) => {
+  const send = (socket: { onmessage: ((e: { data: string }) => void) | null }, c: object) =>
+    socket.onmessage!({ data: JSON.stringify({ type: 'event', event: { c: { [entityId]: c } } }) });
+
+  it('stays on for an attribute-only update', async () => {
+    const { result, socket } = await mountFresh();
+    send(socket, { '+': { s: 'on' } });
+    expect(result[key].value).toBe(true);
+    send(socket, { '+': { a: { icon: 'mdi:x' } } });
+    expect(result[key].value).toBe(true);
+  });
+
+  it('stays on for a removal-only diff without "+"', async () => {
+    const { result, socket } = await mountFresh();
+    send(socket, { '+': { s: 'on' } });
+    send(socket, { '-': { a: ['icon'] } });
+    expect(result[key].value).toBe(true);
+  });
+
+  it('turns off on state off', async () => {
+    const { result, socket } = await mountFresh();
+    send(socket, { '+': { s: 'on' } });
+    send(socket, { '+': { s: 'off' } });
+    expect(result[key].value).toBe(false);
+  });
+});
+
 describe('useHomeAssistant - multi-entity and non-numeric event handling', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
