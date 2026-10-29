@@ -5,6 +5,7 @@ import { useHomeAssistant } from '../../composables/useHomeAssistant.js';
 
 const overlayConfigMock = vi.hoisted(() => ({
   valid: true,
+  unreachable: false,
   entities: {
     steps: 'sensor.ksmb_v1_7aed_current_step_count',
     distance: 'sensor.ksmb_v1_7aed_current_distance',
@@ -21,6 +22,7 @@ vi.mock('../../composables/useOverlayConfig', () => ({
     entities: { value: overlayConfigMock.valid ? overlayConfigMock.entities : null },
     widgets: { value: [] },
     maxHeartRate: { value: 185 },
+    configUnreachable: { value: overlayConfigMock.unreachable },
     ensureOverlayConfigLoaded: () => Promise.resolve(overlayConfigMock.valid),
   }),
 }));
@@ -187,6 +189,35 @@ describe('useHomeAssistant - overlay config gating', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     overlayConfigMock.valid = true;
+    overlayConfigMock.unreachable = false;
+    vi.useRealTimers();
+  });
+
+  it('retries and connects once an unreachable overlay config becomes available', async () => {
+    vi.useFakeTimers();
+    overlayConfigMock.valid = false;
+    overlayConfigMock.unreachable = true;
+    const { result, socket } = await mountFreshUnasserted();
+    expect(socket).toBeUndefined();
+    expect(result.connectionState.value).toBe('disconnected');
+
+    overlayConfigMock.valid = true;
+    overlayConfigMock.unreachable = false;
+    await vi.advanceTimersByTimeAsync(2_000);
+
+    expect(SyncMockWebSocket.instances).toHaveLength(1);
+  });
+
+  it('does not retry when the overlay config is invalid', async () => {
+    vi.useFakeTimers();
+    overlayConfigMock.valid = false;
+    const { socket } = await mountFreshUnasserted();
+    expect(socket).toBeUndefined();
+
+    overlayConfigMock.valid = true;
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    expect(SyncMockWebSocket.instances).toHaveLength(0);
   });
 
   it('never opens a socket when the overlay config is invalid', async () => {

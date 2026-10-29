@@ -309,11 +309,17 @@ const buildHaWebSocketUrl = (isDev: boolean): string | null => {
 };
 
 const connectToHAInner = async (isReconnect: boolean): Promise<void> => {
-  const { entities: overlayEntities, ensureOverlayConfigLoaded } = useOverlayConfig();
+  const {
+    entities: overlayEntities,
+    configUnreachable,
+    ensureOverlayConfigLoaded,
+  } = useOverlayConfig();
   const configValid = await ensureOverlayConfigLoaded();
   const configuredEntities = overlayEntities.value;
   if (!configValid || !configuredEntities) {
     connectionState.value = 'disconnected';
+    // An unreachable config file is transient; an invalid one is fatal.
+    if (configUnreachable.value) scheduleReconnect();
     return;
   }
 

@@ -259,7 +259,7 @@ describe('useOverlayConfig', () => {
 
     it('logs exactly one console.error', async () => {
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      vi.stubGlobal('fetch', mockFetchResolving(null, false));
+      vi.stubGlobal('fetch', mockFetchResolving(omit(validConfig, 'entities')));
 
       const { useOverlayConfig } = await import('../../composables/useOverlayConfig');
       const { ensureOverlayConfigLoaded } = useOverlayConfig();
@@ -276,6 +276,96 @@ describe('useOverlayConfig', () => {
 
       const { useOverlayConfig } = await import('../../composables/useOverlayConfig');
       await expect(useOverlayConfig().ensureOverlayConfigLoaded()).resolves.toBe(false);
+    });
+  });
+
+  describe('an unreachable config is retried', () => {
+    it('re-fetches after a 404 and succeeds once the file is valid', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce({ ok: false, status: 404, json: () => Promise.resolve(null) })
+        .mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve(validConfig) });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const { useOverlayConfig } = await import('../../composables/useOverlayConfig');
+      const { ensureOverlayConfigLoaded, configUnreachable, configLoaded, entities } =
+        useOverlayConfig();
+
+      await expect(ensureOverlayConfigLoaded()).resolves.toBe(false);
+      expect(configUnreachable.value).toBe(true);
+      expect(configLoaded.value).toBe(false);
+
+      await expect(ensureOverlayConfigLoaded()).resolves.toBe(true);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(entities.value).toEqual(validEntities);
+      expect(configUnreachable.value).toBe(false);
+      expect(configLoaded.value).toBe(true);
+      warnSpy.mockRestore();
+    });
+
+    it('re-fetches after a network rejection', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const fetchMock = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('network error'))
+        .mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve(validConfig) });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const { useOverlayConfig } = await import('../../composables/useOverlayConfig');
+      const { ensureOverlayConfigLoaded } = useOverlayConfig();
+
+      await expect(ensureOverlayConfigLoaded()).resolves.toBe(false);
+      await expect(ensureOverlayConfigLoaded()).resolves.toBe(true);
+      warnSpy.mockRestore();
+    });
+
+    it('logs a warning, not an error, for an unreachable file', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.stubGlobal('fetch', mockFetchResolving(null, false));
+
+      const { useOverlayConfig } = await import('../../composables/useOverlayConfig');
+      await useOverlayConfig().ensureOverlayConfigLoaded();
+
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalled();
+      errorSpy.mockRestore();
+      warnSpy.mockRestore();
+    });
+
+    it('does not re-fetch when the body is not valid JSON', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.reject(new Error('invalid json')),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const { useOverlayConfig } = await import('../../composables/useOverlayConfig');
+      const { ensureOverlayConfigLoaded, configUnreachable } = useOverlayConfig();
+      await ensureOverlayConfigLoaded();
+      await ensureOverlayConfigLoaded();
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(configUnreachable.value).toBe(false);
+      errorSpy.mockRestore();
+    });
+
+    it('does not re-fetch an invalid config', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const fetchMock = mockFetchResolving(omit(validConfig, 'entities'));
+      vi.stubGlobal('fetch', fetchMock);
+
+      const { useOverlayConfig } = await import('../../composables/useOverlayConfig');
+      const { ensureOverlayConfigLoaded, configUnreachable } = useOverlayConfig();
+      await ensureOverlayConfigLoaded();
+      await ensureOverlayConfigLoaded();
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(configUnreachable.value).toBe(false);
+      errorSpy.mockRestore();
     });
   });
 

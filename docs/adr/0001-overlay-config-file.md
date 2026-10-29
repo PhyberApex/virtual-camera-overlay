@@ -40,8 +40,12 @@ layout as well, rather than introducing a second configuration mechanism.
 - Validation is a hand-written guard (no schema library): `entities` and `widgets` are required
   and type-checked field by field. If the file can't be fetched, isn't valid JSON, or fails this
   guard, the overlay renders nothing and logs exactly one `console.error` — mirroring the existing
-  missing-token behavior. This check runs once, before connecting to Home Assistant at all, so no
-  entity subscription or widget is ever built from a partially-loaded config. `maxHeartRate` keeps
+  missing-token behavior. The exception is a file that is _unreachable_ (network failure or a
+  non-2xx response, e.g. Home Assistant still starting when OBS loads the browser source): that is
+  retried with the Home Assistant reconnect backoff (2 s doubling to a 30 s cap), logging a
+  `console.warn` per attempt instead of an error, and the widgets are built and the connection
+  proceeds as soon as the file loads — no page reload needed. This check runs once, before connecting to Home Assistant at all, so
+  no entity subscription or widget is ever built from a partially-loaded config. `maxHeartRate` keeps
   its own independent, softer fallback (default `185`) from #600, since an invalid/missing value
   there doesn't prevent the overlay from working.
 - The widget subscription list is built from the loaded config at authentication time, same as
@@ -53,8 +57,10 @@ layout as well, rather than introducing a second configuration mechanism.
   one-file edit, no code change or PR required.
 - Adding a `temperature` or `sensor` widget — previously unreachable outside of tests — is now a
   config edit; a reload picks it up (no live hot-reload of the config file is required).
-- A broken or missing config file is an all-or-nothing failure: the entire overlay renders
-  nothing rather than partially working with stale defaults. This is intentional — a malformed
-  config can't silently point at the wrong entities.
+- An _invalid_ config file (malformed JSON or failing validation) is an all-or-nothing, fatal
+  failure: the entire overlay renders nothing rather than partially working with stale defaults,
+  and it is not re-fetched. This is intentional — a malformed config can't silently point at the
+  wrong entities. An _unreachable_ file is transient and retried with backoff (see above), so a
+  boot-order race no longer requires refreshing the browser source.
 - Theming and a configuration UI remain out of scope; editing the JSON file by hand is the only
   interface.
