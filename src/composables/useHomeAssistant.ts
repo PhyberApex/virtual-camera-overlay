@@ -296,6 +296,18 @@ const connectToHA = async (isReconnect = false): Promise<void> => {
   }
 };
 
+const buildHaWebSocketUrl = (isDev: boolean): string | null => {
+  const protocol: string = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  if (!isDev) {
+    // window.location.host omits the port when it is the scheme default
+    return `${protocol}//${window.location.host}/api/websocket`;
+  }
+  if (!devHost || !devPort || devHost.includes('your_') || devPort.includes('your_')) {
+    return null;
+  }
+  return `${protocol}//${devHost}:${devPort}/api/websocket`;
+};
+
 const connectToHAInner = async (isReconnect: boolean): Promise<void> => {
   const { entities: overlayEntities, ensureOverlayConfigLoaded } = useOverlayConfig();
   const configValid = await ensureOverlayConfigLoaded();
@@ -307,18 +319,12 @@ const connectToHAInner = async (isReconnect: boolean): Promise<void> => {
 
   // Use different URLs for development and production
   const isDev: boolean = import.meta.env.DEV as boolean;
-  const protocol: string = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const host: string = isDev ? devHost : window.location.hostname;
-  const port: string = isDev ? devPort : window.location.port;
-
-  // Check if host/port are valid
-  if (!host || !port || host.includes('your_') || port.includes('your_')) {
+  const url = buildHaWebSocketUrl(isDev);
+  if (!url) {
     console.warn('[HomeAssistant] Invalid or missing HA connection config, skipping connection');
     connectionState.value = 'disconnected';
     return;
   }
-
-  const url: string = `${protocol}//${host}:${port}/api/websocket`;
 
   if (!isReconnect) {
     reconnectAttempts = 0;
