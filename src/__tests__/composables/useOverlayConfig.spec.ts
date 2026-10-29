@@ -334,6 +334,25 @@ describe('useOverlayConfig', () => {
       warnSpy.mockRestore();
     });
 
+    it('does not re-fetch when the body is not valid JSON', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.reject(new Error('invalid json')),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const { useOverlayConfig } = await import('../../composables/useOverlayConfig');
+      const { ensureOverlayConfigLoaded, configUnreachable } = useOverlayConfig();
+      await ensureOverlayConfigLoaded();
+      await ensureOverlayConfigLoaded();
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(configUnreachable.value).toBe(false);
+      errorSpy.mockRestore();
+    });
+
     it('does not re-fetch an invalid config', async () => {
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       const fetchMock = mockFetchResolving(omit(validConfig, 'entities'));

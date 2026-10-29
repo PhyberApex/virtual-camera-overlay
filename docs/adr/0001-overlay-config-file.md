@@ -44,8 +44,8 @@ layout as well, rather than introducing a second configuration mechanism.
   non-2xx response, e.g. Home Assistant still starting when OBS loads the browser source): that is
   retried with the Home Assistant reconnect backoff (2 s doubling to a 30 s cap), logging a
   `console.warn` per attempt instead of an error, and the widgets are built and the connection
-  proceeds as soon as the file loads — no page reload needed. This check runs once, before connecting to Home Assistant at all, so no
-  entity subscription or widget is ever built from a partially-loaded config. `maxHeartRate` keeps
+  proceeds as soon as the file loads — no page reload needed. This check runs once, before connecting to Home Assistant at all, so
+  no entity subscription or widget is ever built from a partially-loaded config. `maxHeartRate` keeps
   its own independent, softer fallback (default `185`) from #600, since an invalid/missing value
   there doesn't prevent the overlay from working.
 - The widget subscription list is built from the loaded config at authentication time, same as
