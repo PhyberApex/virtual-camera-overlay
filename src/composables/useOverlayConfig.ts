@@ -147,7 +147,8 @@ const describeInvalidConfig = (value: unknown): string => {
         (!isSize2(widget.size) ||
           (widget.compactSize !== undefined && !isSize2(widget.compactSize)))
       ) {
-        return `widget "${id}": size and compactSize need positive finite width and height`;
+        const field = isSize2(widget.size) ? 'compactSize' : 'size';
+        return `widget "${id}": ${field} needs positive finite width and height`;
       }
       return `widget "${id}" is malformed`;
     }

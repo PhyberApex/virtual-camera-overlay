@@ -204,6 +204,8 @@ describe('useOverlayConfig', () => {
         withWidgets([{ ...validStepsWidget, compactSize: { width: 0, height: 5 } }])
       );
       await expect(ensureOverlayConfigLoaded()).resolves.toBe(false);
+      expect(error).toHaveBeenCalledTimes(1);
+      expect(String(error.mock.calls[0]?.[1])).toContain('compactSize');
       error.mockRestore();
     });
 
