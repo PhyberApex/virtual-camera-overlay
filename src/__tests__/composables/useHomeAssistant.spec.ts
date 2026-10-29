@@ -118,11 +118,13 @@ class SyncMockWebSocket {
   onmessage: ((event: { data: string }) => void) | null = null;
   onclose: (() => void) | null = null;
   onerror: (() => void) | null = null;
-  constructor() {
+  constructor(url: string = '') {
+    this.url = url;
     SyncMockWebSocket.instances.push(this);
   }
   sent: string[] = [];
   closed = false;
+  url: string;
   send(data: string): void {
     this.sent.push(data);
   }
@@ -198,6 +200,49 @@ describe('useHomeAssistant - overlay config gating', () => {
   it('connects normally once the overlay config is valid again', async () => {
     const { result } = await mountFresh();
     expect(result.connectionState.value).not.toBe('disconnected');
+  });
+});
+
+describe('useHomeAssistant - websocket URL', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  const stubLocation = (protocol: string, host: string): void => {
+    vi.stubGlobal('location', { protocol, host });
+  };
+
+  it('uses wss without a port when served from the default https port', async () => {
+    vi.stubEnv('DEV', false);
+    stubLocation('https:', 'ha.example.com');
+    const { socket } = await mountFresh();
+    expect(socket.url).toBe('wss://ha.example.com/api/websocket');
+  });
+
+  it('keeps an explicit port in production', async () => {
+    vi.stubEnv('DEV', false);
+    stubLocation('http:', '192.168.0.13:8123');
+    const { socket } = await mountFresh();
+    expect(socket.url).toBe('ws://192.168.0.13:8123/api/websocket');
+  });
+
+  it('skips connecting in dev mode with placeholder env values', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubEnv('DEV', true);
+    vi.resetModules();
+    SyncMockWebSocket.instances = [];
+    vi.stubGlobal('WebSocket', SyncMockWebSocket);
+    vi.stubEnv('VITE_HA_DEV_HOST', 'your_host');
+    vi.stubEnv('VITE_HA_DEV_PORT', 'your_port');
+    const { useHomeAssistant: fresh } = await import('../../composables/useHomeAssistant.js');
+    let result: ReturnType<typeof fresh>;
+    mount(createHarnessComponent(fresh, false, r => (result = r)));
+    await flushPromises();
+    expect(SyncMockWebSocket.instances.length).toBe(0);
+    expect(result!.connectionState.value).toBe('disconnected');
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
   });
 });
 
