@@ -165,6 +165,80 @@ describe('useOverlayConfig', () => {
     });
   });
 
+  describe('semantic validation', () => {
+    const load = async (config: unknown) => {
+      vi.stubGlobal('fetch', mockFetchResolving(config));
+      const { useOverlayConfig } = await import('../../composables/useOverlayConfig');
+      return useOverlayConfig();
+    };
+    const withWidgets = (widgets: unknown[]) => ({ ...validConfig, widgets });
+
+    it('rejects duplicate widget ids', async () => {
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const { ensureOverlayConfigLoaded } = await load(
+        withWidgets([validStepsWidget, { ...validStepsWidget }])
+      );
+      await expect(ensureOverlayConfigLoaded()).resolves.toBe(false);
+      expect(error).toHaveBeenCalledTimes(1);
+      expect(String(error.mock.calls[0]?.[1])).toContain('steps-display');
+      error.mockRestore();
+    });
+
+    it.each([
+      { width: 0, height: 10 },
+      { width: -5, height: 10 },
+      { width: 10, height: -1 },
+    ])('rejects non-positive size %j', async size => {
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const { ensureOverlayConfigLoaded } = await load(
+        withWidgets([{ ...validStepsWidget, size }])
+      );
+      await expect(ensureOverlayConfigLoaded()).resolves.toBe(false);
+      expect(error).toHaveBeenCalledTimes(1);
+      error.mockRestore();
+    });
+
+    it('rejects non-positive compactSize', async () => {
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const { ensureOverlayConfigLoaded } = await load(
+        withWidgets([{ ...validStepsWidget, compactSize: { width: 0, height: 5 } }])
+      );
+      await expect(ensureOverlayConfigLoaded()).resolves.toBe(false);
+      expect(error).toHaveBeenCalledTimes(1);
+      expect(String(error.mock.calls[0]?.[1])).toContain('compactSize');
+      error.mockRestore();
+    });
+
+    it('rejects a sensor widget without entityId', async () => {
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const { ensureOverlayConfigLoaded } = await load(
+        withWidgets([{ ...validStepsWidget, id: 'temp', type: 'sensor' }])
+      );
+      await expect(ensureOverlayConfigLoaded()).resolves.toBe(false);
+      expect(error).toHaveBeenCalledTimes(1);
+      expect(String(error.mock.calls[0]?.[1])).toContain('temp');
+      error.mockRestore();
+    });
+
+    it('accepts a steps widget without props', async () => {
+      const { ensureOverlayConfigLoaded } = await load(validConfig);
+      await expect(ensureOverlayConfigLoaded()).resolves.toBe(true);
+    });
+
+    it.each([0, -5])('falls back to 185 for maxHeartRate %d', async value => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const { ensureOverlayConfigLoaded, maxHeartRate } = await load({
+        ...validConfig,
+        maxHeartRate: value,
+        heartRate: { anchor: 'top-left', offset: { x: 1, y: 1 } },
+      });
+      await expect(ensureOverlayConfigLoaded()).resolves.toBe(true);
+      expect(maxHeartRate.value).toBe(185);
+      expect(warn).toHaveBeenCalledTimes(1);
+      warn.mockRestore();
+    });
+  });
+
   describe('an invalid or unreachable config renders nothing', () => {
     const expectInvalid = async () => {
       const { useOverlayConfig } = await import('../../composables/useOverlayConfig');

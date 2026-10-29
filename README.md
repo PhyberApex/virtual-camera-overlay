@@ -166,7 +166,11 @@ layout is hard-coded in `src/`.
   `temperature` or `sensor` entry to light up those widgets; no code change is required. A `steps`
   entry may also set `compactSize` (`{width, height}`), used instead of the built-in 600×72
   default while compact mode is on; omit it to keep that default.
-- `maxHeartRate` configures the heart-rate zone thresholds (see `DESIGN.md`).
+  Widget `id`s must be unique, `size`/`compactSize` need a positive `width` and `height`, and
+  `temperature`/`sensor` widgets need a non-empty `props.entityId`. Violating any of these fails
+  validation: the error is logged to the console and the overlay renders nothing.
+- `maxHeartRate` configures the heart-rate zone thresholds (see `DESIGN.md`). It must be a positive
+  finite number; if present but invalid, a warning is logged and it falls back to 185.
 - `heartRate` controls where the BPM display and its pulse-wave animation render — an `anchor` and
   `offset`, same shape as a widget's. They always move together, anchored to the same corner. The
   full-screen pulsing screen border is unaffected and always stays inset to the viewport. If

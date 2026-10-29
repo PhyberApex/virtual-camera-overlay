@@ -82,8 +82,11 @@ const isFiniteNumber = (value: unknown): value is number =>
 const isVector2 = (value: unknown): value is Vector2 =>
   isRecord(value) && isFiniteNumber(value.x) && isFiniteNumber(value.y);
 
+const isPositiveFiniteNumber = (value: unknown): value is number =>
+  isFiniteNumber(value) && value > 0;
+
 const isSize2 = (value: unknown): value is Size2 =>
-  isRecord(value) && isFiniteNumber(value.width) && isFiniteNumber(value.height);
+  isRecord(value) && isPositiveFiniteNumber(value.width) && isPositiveFiniteNumber(value.height);
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === 'string' && value !== '';
@@ -116,6 +119,9 @@ const isValidWidget = (value: unknown): value is OverlayWidgetConfig =>
   (value.compactSize === undefined || isSize2(value.compactSize)) &&
   isValidWidgetProps(value.props);
 
+const hasRequiredProps = (widget: OverlayWidgetConfig): boolean =>
+  widget.type === 'steps' || isNonEmptyString(widget.props?.entityId);
+
 const isValidHeartRateLayout = (value: unknown): value is HeartRateLayout =>
   isRecord(value) && isValidAnchorOffset(value);
 
@@ -123,7 +129,37 @@ const isValidConfig = (value: unknown): value is OverlayConfig =>
   isRecord(value) &&
   isValidEntities(value.entities) &&
   Array.isArray(value.widgets) &&
-  value.widgets.every(isValidWidget);
+  value.widgets.every(isValidWidget) &&
+  value.widgets.every(hasRequiredProps) &&
+  new Set(value.widgets.map(widget => widget.id)).size === value.widgets.length;
+
+// Names the first offending widget/field so a rejected config is easy to fix.
+const describeInvalidConfig = (value: unknown): string => {
+  if (!isRecord(value)) return 'config is not an object';
+  if (!isValidEntities(value.entities)) return 'entities is missing or has an empty entry';
+  if (!Array.isArray(value.widgets)) return 'widgets is not an array';
+  const seen = new Set<string>();
+  for (const [index, widget] of value.widgets.entries()) {
+    if (!isValidWidget(widget)) {
+      const id = isRecord(widget) && isNonEmptyString(widget.id) ? widget.id : `#${index}`;
+      if (
+        isRecord(widget) &&
+        (!isSize2(widget.size) ||
+          (widget.compactSize !== undefined && !isSize2(widget.compactSize)))
+      ) {
+        const field = isSize2(widget.size) ? 'compactSize' : 'size';
+        return `widget "${id}": ${field} needs positive finite width and height`;
+      }
+      return `widget "${id}" is malformed`;
+    }
+    if (seen.has(widget.id)) return `duplicate widget id "${widget.id}"`;
+    seen.add(widget.id);
+    if (!hasRequiredProps(widget)) {
+      return `widget "${widget.id}": ${widget.type} widgets require props.entityId`;
+    }
+  }
+  return 'unknown problem';
+};
 
 const loadOverlayConfig = (): Promise<boolean> => {
   if (fetchPromise) {
@@ -147,13 +183,21 @@ const loadOverlayConfig = (): Promise<boolean> => {
     )
     .then(config => {
       if (!isValidConfig(config)) {
-        throw new Error('Overlay config failed validation');
+        throw new Error(`Overlay config failed validation: ${describeInvalidConfig(config)}`);
       }
 
       entities.value = config.entities;
       widgets.value = config.widgets;
-      if (typeof config.maxHeartRate === 'number') {
+      if (isPositiveFiniteNumber(config.maxHeartRate)) {
         maxHeartRate.value = config.maxHeartRate;
+      } else {
+        maxHeartRate.value = DEFAULT_MAX_HEART_RATE;
+        if (config.maxHeartRate !== undefined) {
+          console.warn(
+            `[OverlayConfig] Invalid maxHeartRate; falling back to ${DEFAULT_MAX_HEART_RATE}`,
+            config.maxHeartRate
+          );
+        }
       }
       if (isValidHeartRateLayout(config.heartRate)) {
         heartRateLayout.value = config.heartRate;
