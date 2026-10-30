@@ -18,8 +18,8 @@ interface HAAuthOkMessage {
 interface HAEventMessage {
   type: 'event';
   event: {
-    a?: Record<string, { s: string | number }>;
-    c?: Record<string, { '+'?: { s?: string | number } }>;
+    a?: Record<string, { s: string | number; lu?: number }>;
+    c?: Record<string, { '+'?: { s?: string | number; lu?: number } }>;
   };
 }
 
@@ -46,6 +46,7 @@ const HEARTBEAT_INTERVAL = 30_000;
 const HEARTBEAT_MISSES_ALLOWED = 2;
 const CONNECTION_LOSS_GRACE_PERIOD = 10_000;
 const AUTH_TIMEOUT_PERIOD = 10_000;
+const HEART_RATE_STALE_AFTER = 3 * 60_000;
 
 let socket: WebSocket | null = null;
 let isConnecting = false;
@@ -57,6 +58,7 @@ let missedHeartbeats = 0;
 let connectionLossTimer: number | null = null;
 let authDeadlineTimer: number | null = null;
 let authOkReceived = false;
+let heartRateStaleTimer: number | null = null;
 let mockStepDataInterval: number | null = null;
 let mockHeartDataInterval: number | null = null;
 const devHost: string = import.meta.env.VITE_HA_DEV_HOST as string;
@@ -86,6 +88,11 @@ const clearIntervalSafe = (id: number | null): void => {
 const clearConnectionLossTimer = (): void => {
   clearTimeoutSafe(connectionLossTimer);
   connectionLossTimer = null;
+};
+
+const clearHeartRateStaleTimer = (): void => {
+  clearTimeoutSafe(heartRateStaleTimer);
+  heartRateStaleTimer = null;
 };
 
 const clearAuthDeadlineTimer = (): void => {
@@ -245,6 +252,8 @@ const startMockHeartData = (): void => {
   if (mockHeartDataInterval) clearInterval(mockHeartDataInterval);
 
   console.log('Starting mock heart data generation');
+  // Mock readings never come from HA, so they always count as fresh.
+  clearHeartRateStaleTimer();
   // Initial values
   heartRate.value = 65;
   connectionState.value = 'connected';
@@ -296,12 +305,41 @@ const buildHaWebSocketUrl = (isDev: boolean): string | null => {
   return `${protocol}//${devHost}:${devPort}/api/websocket`;
 };
 
+// HA's `lu` is unix seconds. A reading older than the window is hidden (heartRate 0)
+// at once and a fresh one is hidden when it ages out. A missing `lu` counts as fresh.
+const applyHeartRate = (
+  state: string | number,
+  unavailable: boolean,
+  lastUpdated: number | undefined
+): void => {
+  clearHeartRateStaleTimer();
+  const parsed = unavailable ? undefined : parseFiniteFloat(state);
+  if (parsed === undefined) {
+    if (unavailable) heartRate.value = 0;
+    return;
+  }
+  const remaining =
+    typeof lastUpdated === 'number' && Number.isFinite(lastUpdated)
+      ? lastUpdated * 1000 + HEART_RATE_STALE_AFTER - Date.now()
+      : HEART_RATE_STALE_AFTER;
+  if (remaining <= 0) {
+    heartRate.value = 0;
+    return;
+  }
+  heartRate.value = parsed;
+  heartRateStaleTimer = window.setTimeout(() => {
+    heartRateStaleTimer = null;
+    heartRate.value = 0;
+  }, remaining);
+};
+
 // Shared by snapshot (`a`) and change (`c`) events. `state` is undefined when an
 // attribute-only diff carries no state, which must leave every value untouched.
 const applyEntityState = (
   entities: OverlayEntities,
   entityId: string,
-  state: string | number | undefined
+  state: string | number | undefined,
+  lastUpdated?: number
 ): void => {
   if (state === undefined) return;
   const unavailable = isUnavailableState(state);
@@ -326,7 +364,7 @@ const applyEntityState = (
   }
   if (entityId === entities.distance) applyNumber(distance, parseFiniteFloat);
   if (entityId === entities.speed) applyNumber(speed, parseFiniteFloat);
-  if (entityId === entities.heartRate) applyNumber(heartRate, parseFiniteFloat);
+  if (entityId === entities.heartRate) applyHeartRate(state, unavailable, lastUpdated);
   if (entityId === entities.brbToggle) brbEnabled.value = state === 'on';
   if (entityId === entities.heartToggle) heartEnabled.value = state === 'on';
   if (entityId === entities.compactToggle) compactEnabled.value = state === 'on';
@@ -425,7 +463,7 @@ const connectToHAInner = async (isReconnect: boolean): Promise<void> => {
       connectionLost.value = false;
 
       for (const [entityId, state] of Object.entries(eventData)) {
-        applyEntityState(configuredEntities, entityId, state.s);
+        applyEntityState(configuredEntities, entityId, state.s, state.lu);
       }
       // A snapshot is the full picture: a compact toggle it omits is off.
       if (!(configuredEntities.compactToggle in eventData)) {
@@ -435,7 +473,7 @@ const connectToHAInner = async (isReconnect: boolean): Promise<void> => {
       const eventData = message.event.c;
 
       for (const [entityId, diff] of Object.entries(eventData)) {
-        applyEntityState(configuredEntities, entityId, diff['+']?.s);
+        applyEntityState(configuredEntities, entityId, diff['+']?.s, diff['+']?.lu);
       }
     }
   };
@@ -524,6 +562,7 @@ export function useHomeAssistant(isDevPanel: boolean = false): HomeAssistantRetu
     connectionState.value = 'disconnected';
     stopMockStepData();
     stopMockHeartData();
+    clearHeartRateStaleTimer();
   });
 
   return {

@@ -1045,3 +1045,76 @@ describe('useHomeAssistant - heartbeat', () => {
     });
   });
 });
+
+describe('useHomeAssistant - stale heart rate', () => {
+  const HR = 'sensor.galaxy_watch5_rrry_heart_rate';
+  const nowSec = () => Date.now() / 1000;
+  const send = (socket: { onmessage: ((e: { data: string }) => void) | null }, event: object) =>
+    socket.onmessage!({ data: JSON.stringify({ type: 'event', event }) });
+
+  // Answer heartbeats so the socket survives long waits.
+  const wait = (socket: Parameters<typeof send>[0], ms: number) => {
+    for (let elapsed = 0; elapsed < ms; elapsed += 10_000) {
+      vi.advanceTimersByTime(Math.min(10_000, ms - elapsed));
+      socket.onmessage!({ data: JSON.stringify({ type: 'pong' }) });
+    }
+  };
+
+  const mountAuthed = async (isDevPanel = false) => {
+    const mounted = await mountFresh(isDevPanel);
+    await completeAuth(mounted.socket);
+    return mounted;
+  };
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('hides a snapshot reading older than 3 minutes immediately', async () => {
+    const { result, socket } = await mountAuthed();
+    send(socket, { a: { [HR]: { s: '88', lu: nowSec() - 181 } } });
+    expect(result.heartRate.value).toBeFalsy();
+  });
+
+  it('shows a fresh reading, then hides it once 3 minutes pass without an update', async () => {
+    const { result, socket } = await mountAuthed();
+    send(socket, { c: { [HR]: { '+': { s: '88', lu: nowSec() } } } });
+    expect(result.heartRate.value).toBe(88);
+    wait(socket, 179_000);
+    expect(result.heartRate.value).toBe(88);
+    wait(socket, 2_000);
+    expect(result.heartRate.value).toBeFalsy();
+  });
+
+  it('a new reading restarts the window and revives a hidden one', async () => {
+    const { result, socket } = await mountAuthed();
+    send(socket, { c: { [HR]: { '+': { s: '88', lu: nowSec() } } } });
+    wait(socket, 120_000);
+    send(socket, { c: { [HR]: { '+': { s: '90', lu: nowSec() } } } });
+    wait(socket, 120_000);
+    expect(result.heartRate.value).toBe(90);
+    wait(socket, 61_000);
+    expect(result.heartRate.value).toBeFalsy();
+    send(socket, { c: { [HR]: { '+': { s: '95', lu: nowSec() } } } });
+    expect(result.heartRate.value).toBe(95);
+  });
+
+  it('does not hide steps, distance or speed', async () => {
+    const { result, socket } = await mountAuthed();
+    send(socket, {
+      a: { 'sensor.ksmb_v1_7aed_current_step_count': { s: '42', lu: nowSec() - 3600 } },
+    });
+    expect(result.steps.value).toBe(42);
+  });
+
+  it('keeps mock heart data fresh', async () => {
+    const { result, socket } = await mountAuthed(true);
+    send(socket, { c: { [HR]: { '+': { s: '88', lu: nowSec() } } } });
+    result.startMockHeartData?.();
+    vi.advanceTimersByTime(200_000);
+    expect(result.heartRate.value).toBeTruthy();
+  });
+});
