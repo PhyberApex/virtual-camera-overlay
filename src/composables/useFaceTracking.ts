@@ -101,6 +101,7 @@ export const useFaceTracking = ({
   let detector: FaceDetector | null = null;
   let loading = false;
   let loadFailed = false;
+  let disposed = false;
   let timer: ReturnType<typeof setInterval> | null = null;
   let lostSince: number | null = null;
 
@@ -147,7 +148,7 @@ export const useFaceTracking = ({
     loading = true;
     try {
       const created = await createDetector();
-      if (enabled.value) {
+      if (enabled.value && !disposed) {
         detector = created;
       } else {
         created.close();
@@ -188,6 +189,7 @@ export const useFaceTracking = ({
   );
 
   onScopeDispose(() => {
+    disposed = true;
     reset();
     detector?.close();
     detector = null;

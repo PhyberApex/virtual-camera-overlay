@@ -4,10 +4,12 @@ import vueDevTools from 'vite-plugin-vue-devtools';
 import tailwindcss from '@tailwindcss/vite';
 import { createReadStream, existsSync, readdirSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import { dirname, join, sep } from 'node:path';
 
 // Serves MediaPipe's WASM runtime from the app's own origin (dev server and build output), so the
 // landmarker never fetches from a CDN. The model lives in public/mediapipe.
+const WASM_FILE = /^vision_wasm_.*\.(js|wasm)$/;
+
 const mediapipeWasm = () => {
   const wasmDir = dirname(
     createRequire(import.meta.url).resolve('@mediapipe/tasks-vision/vision_wasm_internal.js')
@@ -17,7 +19,12 @@ const mediapipeWasm = () => {
     configureServer(server) {
       server.middlewares.use('/mediapipe/wasm', (req, res, next) => {
         const file = join(wasmDir, (req.url ?? '').split('?')[0]);
-        if (!file.startsWith(wasmDir) || !existsSync(file)) return next();
+        if (
+          !file.startsWith(wasmDir + sep) ||
+          !WASM_FILE.test(file.slice(wasmDir.length + 1)) ||
+          !existsSync(file)
+        )
+          return next();
         res.setHeader(
           'Content-Type',
           file.endsWith('.wasm') ? 'application/wasm' : 'text/javascript'
@@ -26,7 +33,7 @@ const mediapipeWasm = () => {
       });
     },
     generateBundle() {
-      for (const name of readdirSync(wasmDir)) {
+      for (const name of readdirSync(wasmDir).filter(n => WASM_FILE.test(n))) {
         this.emitFile({
           type: 'asset',
           fileName: `mediapipe/wasm/${name}`,

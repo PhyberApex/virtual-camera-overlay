@@ -69,6 +69,6 @@ export const computeFraming = (
   const withinDeadZone =
     Math.abs(target.x - current.x) < config.deadZone * stage.width &&
     Math.abs(target.y - current.y) < config.deadZone * stage.height &&
-    Math.abs(target.scale - current.scale) < config.deadZone * maxZoom;
+    Math.abs(target.scale - current.scale) < config.deadZone;
   return withinDeadZone ? current : target;
 };

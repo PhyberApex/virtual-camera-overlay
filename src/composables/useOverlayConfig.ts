@@ -175,7 +175,7 @@ const resolveBeRightBack = (value: unknown): BeRightBackConfig => {
   return resolved;
 };
 
-// Fraction fields must lie in (0, 1]; maxZoom must be at least 1; easeMs must be positive.
+// maxZoom is at least 1, deadZone and targetY are fractions of the stage, easeMs is positive.
 const FRAMING_RULES: Record<keyof FramingConfig, { valid: (v: number) => boolean; rule: string }> =
   {
     maxZoom: { valid: v => v >= 1, rule: 'a number of at least 1' },
