@@ -38,26 +38,8 @@ const { maxHeartRate, heartRateLayout } = useOverlayConfig();
 const screenBorder: Ref<HTMLDivElement | null> = ref(null);
 const pulseWaves: Ref<HTMLDivElement[]> = ref([]);
 
-// Matches the existing .bpm-display/.pulse-waves mobile breakpoint below.
-const MOBILE_BREAKPOINT_WIDTH = 768;
-const MOBILE_OFFSET_REDUCTION = 5;
-
-const isMobile: Ref<boolean> = ref(window.innerWidth <= MOBILE_BREAKPOINT_WIDTH);
-const updateIsMobile = (): void => {
-  isMobile.value = window.innerWidth <= MOBILE_BREAKPOINT_WIDTH;
-};
-
-const effectiveOffset = computed(() => {
-  const { offset } = heartRateLayout.value;
-  if (!isMobile.value) return offset;
-  return {
-    x: Math.max(0, offset.x - MOBILE_OFFSET_REDUCTION),
-    y: Math.max(0, offset.y - MOBILE_OFFSET_REDUCTION),
-  };
-});
-
 const cornerStyle = computed(() =>
-  computeCornerStyle(heartRateLayout.value.anchor, effectiveOffset.value)
+  computeCornerStyle(heartRateLayout.value.anchor, heartRateLayout.value.offset)
 );
 
 let borderPulseAnimation: gsap.core.Timeline | null = null;
@@ -139,12 +121,10 @@ onMounted(() => {
   if (heartEnabled.value && heartRate.value && !connectionLost.value) {
     startBorderPulse();
   }
-  window.addEventListener('resize', updateIsMobile);
 });
 
 onUnmounted(() => {
   stopAnimations();
-  window.removeEventListener('resize', updateIsMobile);
 });
 </script>
 
@@ -293,35 +273,6 @@ onUnmounted(() => {
   }
   to {
     filter: brightness(1.3);
-  }
-}
-
-/* Mobile responsive adjustments */
-@media (max-width: 768px) {
-  .screen-border {
-    border-width: 2px;
-  }
-
-  .bpm-display {
-    padding: 8px 12px;
-    min-width: 80px;
-  }
-
-  .bpm-value {
-    font-size: 1.5rem;
-  }
-
-  .bpm-label {
-    font-size: 0.6rem;
-  }
-
-  .bpm-zone {
-    font-size: 0.55rem;
-  }
-
-  .pulse-wave {
-    width: 16px;
-    height: 16px;
   }
 }
 

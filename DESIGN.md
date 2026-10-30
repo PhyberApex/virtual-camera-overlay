@@ -205,7 +205,7 @@ This system is flat by default with tonal layering via transparency. Shadows are
 - **Border:** 2px solid, color determined by heart rate zone
 - **Padding:** 12px 16px
 - **State:** Border and text color both change to match the active zone color
-- **Position:** Configurable via `heartRate` (`anchor` + `offset`) in `public/overlay-config.json`; defaults to `top-left`, `{x: 20, y: 20}` if missing (silent) or invalid (one `console.warn`, not fatal). The pulse waves always share this same position. The mobile breakpoint shrinks the offset by 5px per axis, relative to whichever corner is configured.
+- **Position:** Configurable via `heartRate` (`anchor` + `offset`) in `public/overlay-config.json`; defaults to `top-left`, `{x: 20, y: 20}` if missing (silent) or invalid (one `console.warn`, not fatal). The pulse waves always share this same position.
 
 ### Pulse Waves
 
