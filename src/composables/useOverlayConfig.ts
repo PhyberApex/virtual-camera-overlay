@@ -30,6 +30,10 @@ export interface BeRightBackConfig {
   particles: string[];
 }
 
+export interface CameraConfig {
+  mirror: boolean;
+}
+
 export interface OverlayEntities {
   steps: string;
   distance: string;
@@ -44,6 +48,7 @@ interface OverlayConfig {
   maxHeartRate?: unknown;
   heartRate?: unknown;
   beRightBack?: unknown;
+  camera?: unknown;
   entities: OverlayEntities;
   widgets: OverlayWidgetConfig[];
 }
@@ -66,6 +71,8 @@ export const DEFAULT_BE_RIGHT_BACK: BeRightBackConfig = {
   ],
 };
 
+export const DEFAULT_CAMERA: CameraConfig = { mirror: false };
+
 const ENTITY_KEYS: Array<keyof OverlayEntities> = [
   'steps',
   'distance',
@@ -87,6 +94,7 @@ const defaultBeRightBack = (): BeRightBackConfig => ({
 });
 
 const beRightBack: Ref<BeRightBackConfig> = ref(defaultBeRightBack());
+const camera: Ref<CameraConfig> = ref({ ...DEFAULT_CAMERA });
 const entities: Ref<OverlayEntities | null> = ref(null);
 const widgets: Ref<OverlayWidgetConfig[]> = ref([]);
 
@@ -154,6 +162,22 @@ const resolveBeRightBack = (value: unknown): BeRightBackConfig => {
         particles
       );
     }
+  }
+  return resolved;
+};
+
+const resolveCamera = (value: unknown): CameraConfig => {
+  const resolved = { ...DEFAULT_CAMERA };
+  if (value === undefined) return resolved;
+  if (!isRecord(value) || Array.isArray(value)) {
+    console.warn('[OverlayConfig] Invalid camera config; using the default (not mirrored)', value);
+    return resolved;
+  }
+  const mirror = value.mirror;
+  if (typeof mirror === 'boolean') {
+    resolved.mirror = mirror;
+  } else if (mirror !== undefined) {
+    console.warn('[OverlayConfig] Invalid camera.mirror; falling back to false', mirror);
   }
   return resolved;
 };
@@ -285,6 +309,7 @@ const loadOverlayConfig = (): Promise<boolean> => {
         }
       }
       beRightBack.value = resolveBeRightBack(validConfig.beRightBack);
+      camera.value = resolveCamera(validConfig.camera);
       configUnreachable.value = false;
       configLoaded.value = true;
       return true;
@@ -311,6 +336,7 @@ export const useOverlayConfig = (): {
   maxHeartRate: Ref<number>;
   heartRateLayout: Ref<HeartRateLayout>;
   beRightBack: Ref<BeRightBackConfig>;
+  camera: Ref<CameraConfig>;
   entities: Ref<OverlayEntities | null>;
   widgets: Ref<OverlayWidgetConfig[]>;
   configLoaded: Ref<boolean>;
@@ -322,6 +348,7 @@ export const useOverlayConfig = (): {
     maxHeartRate,
     heartRateLayout,
     beRightBack,
+    camera,
     entities,
     widgets,
     configLoaded,

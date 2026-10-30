@@ -6,15 +6,14 @@ A Vue.js-based overlay for displaying fitness tracking data from Home Assistant 
 
 ## Overview
 
-This application connects to a Home Assistant instance via WebSockets and displays real-time fitness metrics (steps, speed, distance, heart rate) as a transparent overlay. It's designed to be used with OBS Studio's **virtual camera** feature in video conferencing apps (Zoom, Teams, Meet, etc.) so you can work out on a treadmill or exercise bike during meetings while showing colleagues you're actively engaged.
+This application connects to a Home Assistant instance via WebSockets and displays real-time fitness metrics (steps, speed, distance, heart rate) on top of your webcam feed. Open it in Chrome app mode, or capture the window with OBS Studio's **virtual camera**, to use it in video conferencing apps (Zoom, Teams, Meet, etc.) so you can work out on a treadmill or exercise bike during meetings while showing colleagues you're actively engaged.
 
 ## Features
 
 - **Real-time Data**: Connects to Home Assistant via WebSockets for instant fitness metrics
 - **Meeting-Appropriate**: Visible enough to show activity, subtle enough not to distract
 - **Widget System**: Modular display of steps, speed, distance, heart rate with color-coded zones
-- **Virtual Camera Ready**: Designed to work as a browser source in OBS Studio's virtual camera
-- **Transparent Background**: Renders only the overlay elements, no camera feed (use OBS to composite)
+- **Webcam Included**: The page shows your webcam (1920x1080 stage, cover-fitted) under the widgets, with a placeholder and automatic retry if the camera drops
 - **Configurable**: Easily customize connection settings via environment variables
 
 ## Setup
@@ -23,7 +22,7 @@ This application connects to a Home Assistant instance via WebSockets and displa
 
 - Node.js 18+ and pnpm
 - Home Assistant instance with long-lived access token
-- OBS Studio (for virtual camera functionality)
+- A webcam (and optionally OBS Studio to expose the window as a virtual camera)
 - Video conferencing app (Zoom, Teams, Meet, etc.)
 
 ### Installation
@@ -64,28 +63,11 @@ This application connects to a Home Assistant instance via WebSockets and displa
    pnpm build
    ```
 
-### OBS Studio Virtual Camera Setup
+### Using the overlay as your camera
 
-This overlay is designed to be composited with your webcam feed in OBS, then output as a virtual camera to your video conferencing app.
+The page owns the webcam: it requests the default camera on load (ideal 1920x1080 at 30 fps) and draws the widgets on top. Capture the window (for example with OBS window capture and its virtual camera) to feed it to your video conferencing app.
 
-1. **Add your webcam** as a "Video Capture Device" source in OBS
-2. **Add the overlay** as a "Browser" source above your webcam:
-   - For local development: use `http://localhost:5174/` (Vite dev server)
-   - For production: host the built files on a web server or use "Local File" pointing to `dist/index.html`
-3. Set the Browser source width and height to match your OBS canvas size (e.g., 1920x1080); the overlay renders on a fixed 1920x1080 stage scaled to fit, with black bars for other aspect ratios
-4. **Important**: Check "Enable transparency" in the Browser Source properties
-5. **Start Virtual Camera** in OBS (Tools → Start Virtual Camera)
-6. In your video conferencing app (Zoom/Teams/Meet), select "OBS Virtual Camera" as your camera source
-
-**Tip**: If the overlay background isn't transparent, add this in the Browser source Custom CSS field:
-
-```css
-body {
-  background-color: rgba(0, 0, 0, 0) !important;
-  margin: 0px auto;
-  overflow: hidden;
-}
-```
+If the camera is denied, missing or unplugged, a dark placeholder fills the stage while the widgets keep updating, and the page retries every few seconds. In development, press `u` for the DevPanel and switch the video source to a local sample clip at `public/dev-sample.mp4` (gitignored).
 
 ## Configuration
 
@@ -183,6 +165,8 @@ layout is hard-coded in `src/`.
   The 15 particles cycle through the list; an empty list shows none. Each field is optional:
   absent silently keeps the built-in copy and images, an invalid one logs one warning and uses its
   default. Position, the opaque full-screen background and the privacy role are not configurable.
+- `camera` is optional: `mirror` (boolean, default `false`) flips the webcam horizontally. Absent
+  keeps the default; an invalid value logs one warning and uses the default.
 
 If the file is missing, isn't valid JSON, or is missing/mistypes a required `entities` or
 `widgets` field (including a malformed `compactSize`), the overlay renders nothing and logs one
@@ -206,9 +190,7 @@ If a helper doesn't exist in Home Assistant, its toggle simply has no effect; th
 
 - **Connection Issues**: Check that your Home Assistant instance is accessible and that your token is valid.
 - **No Data Showing**: Verify that the entity IDs in `public/overlay-config.json` match your Home Assistant entity IDs.
-- **Virtual Camera Not Appearing**: Make sure OBS Virtual Camera is started (Tools → Start Virtual Camera).
-- **Overlay Not Transparent in OBS**: Verify "Enable transparency" is checked in Browser source properties.
-- **Video App Can't See OBS Camera**: Some apps require you to restart them after OBS Virtual Camera is started.
+- **No Video**: Allow camera access for the page in the browser; the overlay retries every few seconds.
 
 ## License
 

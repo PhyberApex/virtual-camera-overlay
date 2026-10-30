@@ -107,6 +107,41 @@ describe('useOverlayConfig', () => {
       warnSpy.mockRestore();
     });
 
+    describe('camera', () => {
+      const load = async (camera?: unknown) => {
+        vi.stubGlobal('fetch', mockFetchResolving({ ...validConfig, camera }));
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const { useOverlayConfig } = await import('../../composables/useOverlayConfig');
+        const result = useOverlayConfig();
+        await vi.waitFor(() => expect(result.entities.value).toEqual(validEntities));
+        return { ...result, warnSpy };
+      };
+
+      it('is not mirrored, silently, when the section is absent', async () => {
+        const { camera, warnSpy } = await load();
+        expect(camera.value).toEqual({ mirror: false });
+        expect(warnSpy).not.toHaveBeenCalled();
+      });
+
+      it('mirrors when camera.mirror is true', async () => {
+        const { camera, warnSpy } = await load({ mirror: true });
+        expect(camera.value.mirror).toBe(true);
+        expect(warnSpy).not.toHaveBeenCalled();
+      });
+
+      it.each([['yes'], [1]])('warns once and falls back for mirror %j', async bad => {
+        const { camera, warnSpy } = await load({ mirror: bad });
+        expect(camera.value.mirror).toBe(false);
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+      });
+
+      it('warns once and falls back for a non-object section', async () => {
+        const { camera, warnSpy } = await load('mirror');
+        expect(camera.value.mirror).toBe(false);
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+      });
+    });
+
     describe('beRightBack', () => {
       const load = async (beRightBack?: unknown) => {
         vi.stubGlobal('fetch', mockFetchResolving({ ...validConfig, beRightBack }));
