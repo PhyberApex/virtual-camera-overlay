@@ -3,7 +3,7 @@
     <DevPanel />
 
     <div class="stage" :style="stageStyle">
-      <CameraLayer :mirror="camera.mirror" />
+      <CameraLayer :mirror="camera.mirror" :framing="camera.framing" />
       <BeRightBack />
       <HeartRate />
 

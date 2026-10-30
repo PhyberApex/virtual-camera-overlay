@@ -167,6 +167,12 @@ layout is hard-coded in `src/`.
   default. Position, the opaque full-screen background and the privacy role are not configurable.
 - `camera` is optional: `mirror` (boolean, default `false`) flips the webcam horizontally. Absent
   keeps the default; an invalid value logs one warning and uses the default.
+  `camera.framing` tunes auto-framing, where an in-browser face landmarker (MediaPipe, bundled with
+  the app, no CDN) keeps your face around the upper third of the picture. All fields are optional:
+  `maxZoom` (at least 1, default `1.5`), `deadZone` (0 up to 1, share of the stage a change must
+  exceed before the picture moves, default `0.05`), `easeMs` (positive, default `500`) and
+  `targetY` (0 to 1, default `1/3`). When the face is lost the framing holds for one second, then
+  eases back to the full frame. Invalid fields log one warning and use their default.
 
 If the file is missing, isn't valid JSON, or is missing/mistypes a required `entities` or
 `widgets` field (including a malformed `compactSize`), the overlay renders nothing and logs one
