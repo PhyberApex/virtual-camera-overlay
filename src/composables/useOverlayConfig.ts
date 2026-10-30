@@ -85,80 +85,90 @@ const isVector2 = (value: unknown): value is Vector2 =>
 const isPositiveFiniteNumber = (value: unknown): value is number =>
   isFiniteNumber(value) && value > 0;
 
-const isSize2 = (value: unknown): value is Size2 =>
-  isRecord(value) && isPositiveFiniteNumber(value.width) && isPositiveFiniteNumber(value.height);
-
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === 'string' && value !== '';
-
-const isValidEntities = (value: unknown): value is OverlayEntities =>
-  isRecord(value) && ENTITY_KEYS.every(key => isNonEmptyString(value[key]));
-
-const isValidWidgetProps = (value: unknown): value is OverlayWidgetProps | undefined => {
-  if (value === undefined) return true;
-  if (!isRecord(value)) return false;
-  return (
-    (value.entityId === undefined || typeof value.entityId === 'string') &&
-    (value.unit === undefined || typeof value.unit === 'string') &&
-    (value.displayName === undefined || typeof value.displayName === 'string')
-  );
-};
 
 const isValidAnchorOffset = (value: Record<string, unknown>): boolean =>
   typeof value.anchor === 'string' &&
   WIDGET_ANCHORS.includes(value.anchor as WidgetAnchor) &&
   isVector2(value.offset);
 
-const isValidWidget = (value: unknown): value is OverlayWidgetConfig =>
-  isRecord(value) &&
-  isNonEmptyString(value.id) &&
-  typeof value.type === 'string' &&
-  WIDGET_TYPES.includes(value.type as WidgetType) &&
-  isValidAnchorOffset(value) &&
-  isSize2(value.size) &&
-  (value.compactSize === undefined || isSize2(value.compactSize)) &&
-  isValidWidgetProps(value.props);
-
-const hasRequiredProps = (widget: OverlayWidgetConfig): boolean =>
-  widget.type === 'steps' || isNonEmptyString(widget.props?.entityId);
-
 const isValidHeartRateLayout = (value: unknown): value is HeartRateLayout =>
   isRecord(value) && isValidAnchorOffset(value);
 
-const isValidConfig = (value: unknown): value is OverlayConfig =>
-  isRecord(value) &&
-  isValidEntities(value.entities) &&
-  Array.isArray(value.widgets) &&
-  value.widgets.every(isValidWidget) &&
-  value.widgets.every(hasRequiredProps) &&
-  new Set(value.widgets.map(widget => widget.id)).size === value.widgets.length;
+const checkVector2 = (value: unknown, path: string): string | null => {
+  if (!isRecord(value)) return `${path}: expected an object`;
+  if (!isFiniteNumber(value.x)) return `${path}.x: expected a finite number`;
+  if (!isFiniteNumber(value.y)) return `${path}.y: expected a finite number`;
+  return null;
+};
 
-// Names the first offending widget/field so a rejected config is easy to fix.
-const describeInvalidConfig = (value: unknown): string => {
-  if (!isRecord(value)) return 'config is not an object';
-  if (!isValidEntities(value.entities)) return 'entities is missing or has an empty entry';
-  if (!Array.isArray(value.widgets)) return 'widgets is not an array';
-  const seen = new Set<string>();
-  for (const [index, widget] of value.widgets.entries()) {
-    if (!isValidWidget(widget)) {
-      const id = isRecord(widget) && isNonEmptyString(widget.id) ? widget.id : `#${index}`;
-      if (
-        isRecord(widget) &&
-        (!isSize2(widget.size) ||
-          (widget.compactSize !== undefined && !isSize2(widget.compactSize)))
-      ) {
-        const field = isSize2(widget.size) ? 'compactSize' : 'size';
-        return `widget "${id}": ${field} needs positive finite width and height`;
-      }
-      return `widget "${id}" is malformed`;
-    }
-    if (seen.has(widget.id)) return `duplicate widget id "${widget.id}"`;
-    seen.add(widget.id);
-    if (!hasRequiredProps(widget)) {
-      return `widget "${widget.id}": ${widget.type} widgets require props.entityId`;
+const checkSize2 = (value: unknown, path: string): string | null => {
+  if (!isRecord(value)) return `${path}: expected an object`;
+  if (!isPositiveFiniteNumber(value.width))
+    return `${path}.width: expected a positive finite number`;
+  if (!isPositiveFiniteNumber(value.height))
+    return `${path}.height: expected a positive finite number`;
+  return null;
+};
+
+const checkWidgetProps = (value: unknown, path: string): string | null => {
+  if (value === undefined) return null;
+  if (!isRecord(value)) return `${path}: expected an object`;
+  for (const key of ['entityId', 'unit', 'displayName'] as const) {
+    if (value[key] !== undefined && typeof value[key] !== 'string') {
+      return `${path}.${key}: expected a string`;
     }
   }
-  return 'unknown problem';
+  return null;
+};
+
+const checkWidget = (value: unknown, path: string): string | null => {
+  if (!isRecord(value)) return `${path}: expected an object`;
+  if (!isNonEmptyString(value.id)) return `${path}.id: expected a non-empty string`;
+  if (typeof value.type !== 'string' || !WIDGET_TYPES.includes(value.type as WidgetType)) {
+    return `${path}.type: expected one of ${WIDGET_TYPES.join(', ')}`;
+  }
+  if (typeof value.anchor !== 'string' || !WIDGET_ANCHORS.includes(value.anchor as WidgetAnchor)) {
+    return `${path}.anchor: expected one of ${WIDGET_ANCHORS.join(', ')}`;
+  }
+  const failure =
+    checkVector2(value.offset, `${path}.offset`) ??
+    checkSize2(value.size, `${path}.size`) ??
+    (value.compactSize === undefined
+      ? null
+      : checkSize2(value.compactSize, `${path}.compactSize`)) ??
+    checkWidgetProps(value.props, `${path}.props`);
+  if (failure) return failure;
+  if (value.type !== 'steps') {
+    const props = value.props as OverlayWidgetProps | undefined;
+    if (!isNonEmptyString(props?.entityId)) {
+      return `${path}.props.entityId: expected a non-empty string (required for ${value.type} widgets)`;
+    }
+  }
+  return null;
+};
+
+// Returns the first failing path with what was expected, or null when the config is valid.
+const findConfigError = (value: unknown): string | null => {
+  if (!isRecord(value)) return 'config: expected an object';
+  if (!isRecord(value.entities)) return 'entities: expected an object';
+  for (const key of ENTITY_KEYS) {
+    if (!isNonEmptyString(value.entities[key])) {
+      return `entities.${key}: expected a non-empty string`;
+    }
+  }
+  if (!Array.isArray(value.widgets)) return 'widgets: expected an array';
+  const seen = new Set<string>();
+  for (const [index, widget] of value.widgets.entries()) {
+    const path = `widgets[${index}]`;
+    const failure = checkWidget(widget, path);
+    if (failure) return failure;
+    const id = (widget as OverlayWidgetConfig).id;
+    if (seen.has(id)) return `${path}.id: expected a unique id, "${id}" is used twice`;
+    seen.add(id);
+  }
+  return null;
 };
 
 const loadOverlayConfig = (): Promise<boolean> => {
@@ -182,30 +192,32 @@ const loadOverlayConfig = (): Promise<boolean> => {
       }
     )
     .then(config => {
-      if (!isValidConfig(config)) {
-        throw new Error(`Overlay config failed validation: ${describeInvalidConfig(config)}`);
+      const configError = findConfigError(config);
+      if (configError) {
+        throw new Error(`Overlay config failed validation: ${configError}`);
       }
+      const validConfig = config as OverlayConfig;
 
-      entities.value = config.entities;
-      widgets.value = config.widgets;
-      if (isPositiveFiniteNumber(config.maxHeartRate)) {
-        maxHeartRate.value = config.maxHeartRate;
+      entities.value = validConfig.entities;
+      widgets.value = validConfig.widgets;
+      if (isPositiveFiniteNumber(validConfig.maxHeartRate)) {
+        maxHeartRate.value = validConfig.maxHeartRate;
       } else {
         maxHeartRate.value = DEFAULT_MAX_HEART_RATE;
-        if (config.maxHeartRate !== undefined) {
+        if (validConfig.maxHeartRate !== undefined) {
           console.warn(
             `[OverlayConfig] Invalid maxHeartRate; falling back to ${DEFAULT_MAX_HEART_RATE}`,
-            config.maxHeartRate
+            validConfig.maxHeartRate
           );
         }
       }
-      if (isValidHeartRateLayout(config.heartRate)) {
-        heartRateLayout.value = config.heartRate;
+      if (isValidHeartRateLayout(validConfig.heartRate)) {
+        heartRateLayout.value = validConfig.heartRate;
       } else {
         heartRateLayout.value = { ...DEFAULT_HEART_RATE_LAYOUT };
         console.warn(
           '[OverlayConfig] Invalid or missing heartRate config; falling back to top-left, {x: 20, y: 20}',
-          config.heartRate
+          validConfig.heartRate
         );
       }
       configUnreachable.value = false;

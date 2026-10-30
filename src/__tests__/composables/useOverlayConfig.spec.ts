@@ -180,7 +180,7 @@ describe('useOverlayConfig', () => {
       );
       await expect(ensureOverlayConfigLoaded()).resolves.toBe(false);
       expect(error).toHaveBeenCalledTimes(1);
-      expect(String(error.mock.calls[0]?.[1])).toContain('steps-display');
+      expect(String(error.mock.calls[0]?.[1])).toContain('widgets[1].id');
       error.mockRestore();
     });
 
@@ -216,7 +216,7 @@ describe('useOverlayConfig', () => {
       );
       await expect(ensureOverlayConfigLoaded()).resolves.toBe(false);
       expect(error).toHaveBeenCalledTimes(1);
-      expect(String(error.mock.calls[0]?.[1])).toContain('temp');
+      expect(String(error.mock.calls[0]?.[1])).toContain('widgets[0].props.entityId');
       error.mockRestore();
     });
 
@@ -236,6 +236,61 @@ describe('useOverlayConfig', () => {
       expect(maxHeartRate.value).toBe(185);
       expect(warn).toHaveBeenCalledTimes(1);
       warn.mockRestore();
+    });
+  });
+
+  describe('the validation error names the first failing path', () => {
+    const messageFor = async (config: unknown) => {
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.stubGlobal('fetch', mockFetchResolving(config));
+      const { useOverlayConfig } = await import('../../composables/useOverlayConfig');
+      await useOverlayConfig().ensureOverlayConfigLoaded();
+      expect(error).toHaveBeenCalledTimes(1);
+      const message = String((error.mock.calls[0]?.[1] as Error).message);
+      error.mockRestore();
+      return message;
+    };
+    const widgetWith = (patch: Record<string, unknown>) => ({
+      ...validConfig,
+      widgets: [{ ...validStepsWidget, ...patch }],
+    });
+
+    it('names a non-finite size height', async () => {
+      const message = await messageFor(widgetWith({ size: { width: 10, height: 'tall' } }));
+      expect(message).toContain('widgets[0].size.height: expected a positive finite number');
+    });
+
+    it('names a missing entity key', async () => {
+      const message = await messageFor({
+        ...validConfig,
+        entities: omit(validEntities, 'compactToggle'),
+      });
+      expect(message).toContain('entities.compactToggle: expected a non-empty string');
+    });
+
+    it('names widgets when it is not an array', async () => {
+      const message = await messageFor({ ...validConfig, widgets: {} });
+      expect(message).toContain('widgets: expected an array');
+    });
+
+    it('names a bad offset coordinate', async () => {
+      const message = await messageFor(widgetWith({ offset: { x: 1, y: null } }));
+      expect(message).toContain('widgets[0].offset.y: expected a finite number');
+    });
+
+    it('names an unknown anchor', async () => {
+      const message = await messageFor(widgetWith({ anchor: 'middle' }));
+      expect(message).toContain('widgets[0].anchor: expected one of');
+    });
+
+    it('reports only the first failure', async () => {
+      const message = await messageFor({
+        ...validConfig,
+        entities: omit(validEntities, 'steps'),
+        widgets: [{}],
+      });
+      expect(message).toContain('entities.steps');
+      expect(message).not.toContain('widgets');
     });
   });
 
