@@ -1102,6 +1102,14 @@ describe('useHomeAssistant - stale heart rate', () => {
     expect(result.heartRate.value).toBe(95);
   });
 
+  it('keeps the expiry timer when a later state is unparseable', async () => {
+    const { result, socket } = await mountAuthed();
+    send(socket, { c: { [HR]: { '+': { s: '88', lu: nowSec() } } } });
+    send(socket, { c: { [HR]: { '+': { s: 'abc', lu: nowSec() } } } });
+    wait(socket, 181_000);
+    expect(result.heartRate.value).toBeFalsy();
+  });
+
   it('does not hide steps, distance or speed', async () => {
     const { result, socket } = await mountAuthed();
     send(socket, {

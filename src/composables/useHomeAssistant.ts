@@ -312,10 +312,12 @@ const applyHeartRate = (
   unavailable: boolean,
   lastUpdated: number | undefined
 ): void => {
-  clearHeartRateStaleTimer();
   const parsed = unavailable ? undefined : parseFiniteFloat(state);
+  // An unparseable state leaves the value, and so its expiry timer, untouched.
+  if (parsed === undefined && !unavailable) return;
+  clearHeartRateStaleTimer();
   if (parsed === undefined) {
-    if (unavailable) heartRate.value = 0;
+    heartRate.value = 0;
     return;
   }
   const remaining =
