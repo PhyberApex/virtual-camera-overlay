@@ -38,7 +38,8 @@ fixed and non-positionable).
   computing an absolute `{x, y}` position.
 - `HeartRate.vue`'s existing mobile breakpoint (`max-width: 768px`) still shrinks the offset (by
   5px per axis, floored at 0), but now relative to whichever corner is configured, not hard-coded
-  to top-left.
+  to top-left. _(Amended: the 768px mobile breakpoint and its offset reduction were removed; the
+  configured offset is always used as-is.)_
 - `widgets[]` entries of `type: "steps"` gain an optional `compactSize: Size2` field. When present,
   it's used instead of the `App.vue`-level `DEFAULT_STEPS_WIDGET_COMPACT_SIZE` constant (600×72)
   while compact mode is on. `compactSize` is part of the existing all-or-nothing `widgets`

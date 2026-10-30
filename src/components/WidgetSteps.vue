@@ -89,18 +89,4 @@ const isPaused = computed(() => speed.value === 0);
 .stats-label--muted {
   color: var(--color-text-muted);
 }
-
-@media (max-width: 768px) {
-  .widget-steps {
-    gap: 4px;
-  }
-
-  .stats-value {
-    font-size: 1.5rem;
-  }
-
-  .stats-label {
-    font-size: 1.2rem;
-  }
-}
 </style>

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { ref, nextTick } from 'vue';
+import { ref } from 'vue';
 import HeartRate from '../../components/HeartRate.vue';
 import type { WidgetAnchor, Vector2 } from '../../utils/widgetLayout';
 
@@ -38,7 +38,6 @@ vi.mock('../../composables/useOverlayConfig', () => ({
 describe('HeartRate', () => {
   beforeEach(() => {
     heartRateLayout.value = { anchor: 'top-left', offset: { x: 20, y: 20 } };
-    window.innerWidth = 1920;
   });
 
   it('is not rendered when there is no heart rate reading yet', () => {
@@ -103,18 +102,5 @@ describe('HeartRate', () => {
     expect(wrapper.find('.bpm-display').attributes('style')).toContain('right: 40px');
     expect(wrapper.find('.pulse-waves').attributes('style')).toContain('bottom: 10px');
     expect(wrapper.find('.pulse-waves').attributes('style')).toContain('right: 40px');
-  });
-
-  it('reduces the offset on a mobile-width viewport while staying anchored to the configured corner', async () => {
-    heartEnabled.value = true;
-    heartRate.value = 72;
-    connectionLost.value = false;
-    heartRateLayout.value = { anchor: 'bottom-right', offset: { x: 40, y: 10 } };
-    window.innerWidth = 480;
-    const wrapper = mount(HeartRate);
-    await nextTick();
-
-    expect(wrapper.find('.bpm-display').attributes('style')).toContain('bottom: 5px');
-    expect(wrapper.find('.bpm-display').attributes('style')).toContain('right: 35px');
   });
 });
