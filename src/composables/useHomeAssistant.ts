@@ -29,18 +29,6 @@ interface HAPongMessage {
 
 type HAMessage = HAAuthRequiredMessage | HAAuthOkMessage | HAEventMessage | HAPongMessage;
 
-// A change entry only carries `s` when the state itself changed; attribute-only
-// diffs must leave the toggle untouched.
-function applyToggleDiff(
-  diff: { '+'?: { s?: string | number } } | undefined,
-  target: Ref<boolean>
-) {
-  const newState = diff?.['+']?.s;
-  if (newState !== undefined) {
-    target.value = newState === 'on';
-  }
-}
-
 const steps: Ref<number> = ref(0);
 const speed: Ref<number> = ref(0);
 const distance: Ref<number> = ref(0);
@@ -308,6 +296,42 @@ const buildHaWebSocketUrl = (isDev: boolean): string | null => {
   return `${protocol}//${devHost}:${devPort}/api/websocket`;
 };
 
+// Shared by snapshot (`a`) and change (`c`) events. `state` is undefined when an
+// attribute-only diff carries no state, which must leave every value untouched.
+const applyEntityState = (
+  entities: OverlayEntities,
+  entityId: string,
+  state: string | number | undefined
+): void => {
+  if (state === undefined) return;
+  const unavailable = isUnavailableState(state);
+  if (!unavailable) {
+    entityStates.value[entityId] = state;
+  }
+
+  const applyNumber = (target: Ref<number>, parse: (s: typeof state) => number | undefined) => {
+    if (unavailable) {
+      target.value = 0;
+      return;
+    }
+    const parsed = parse(state);
+    if (parsed !== undefined) target.value = parsed;
+  };
+
+  if (entityId === entities.steps) {
+    applyNumber(steps, s => {
+      const parsed = parseInt(String(s), 10);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    });
+  }
+  if (entityId === entities.distance) applyNumber(distance, parseFiniteFloat);
+  if (entityId === entities.speed) applyNumber(speed, parseFiniteFloat);
+  if (entityId === entities.heartRate) applyNumber(heartRate, parseFiniteFloat);
+  if (entityId === entities.brbToggle) brbEnabled.value = state === 'on';
+  if (entityId === entities.heartToggle) heartEnabled.value = state === 'on';
+  if (entityId === entities.compactToggle) compactEnabled.value = state === 'on';
+};
+
 const connectToHAInner = async (isReconnect: boolean): Promise<void> => {
   const {
     entities: overlayEntities,
@@ -401,121 +425,17 @@ const connectToHAInner = async (isReconnect: boolean): Promise<void> => {
       connectionLost.value = false;
 
       for (const [entityId, state] of Object.entries(eventData)) {
-        if (!isUnavailableState(state.s)) {
-          entityStates.value[entityId] = state.s;
-        }
+        applyEntityState(configuredEntities, entityId, state.s);
       }
-
-      const stepsData = eventData[configuredEntities.steps]?.s;
-      if (isUnavailableState(stepsData)) {
-        steps.value = 0;
-      } else if (typeof stepsData === 'number' || typeof stepsData === 'string') {
-        const parsed = parseInt(String(stepsData), 10);
-        if (Number.isFinite(parsed)) {
-          steps.value = parsed;
-        }
+      // A snapshot is the full picture: a compact toggle it omits is off.
+      if (!(configuredEntities.compactToggle in eventData)) {
+        compactEnabled.value = false;
       }
-
-      const distanceData = eventData[configuredEntities.distance]?.s;
-      if (isUnavailableState(distanceData)) {
-        distance.value = 0;
-      } else {
-        const parsed = parseFiniteFloat(distanceData);
-        if (parsed !== undefined) {
-          distance.value = parsed;
-        }
-      }
-
-      const speedData = eventData[configuredEntities.speed]?.s;
-      if (isUnavailableState(speedData)) {
-        speed.value = 0;
-      } else {
-        const parsed = parseFiniteFloat(speedData);
-        if (parsed !== undefined) {
-          speed.value = parsed;
-        }
-      }
-      const heartData = eventData[configuredEntities.heartRate]?.s;
-      if (isUnavailableState(heartData)) {
-        heartRate.value = 0;
-      } else {
-        const parsed = parseFiniteFloat(heartData);
-        if (parsed !== undefined) {
-          heartRate.value = parsed;
-        }
-      }
-
-      if (configuredEntities.brbToggle in eventData) {
-        brbEnabled.value = eventData[configuredEntities.brbToggle]?.s === 'on';
-      }
-      if (configuredEntities.heartToggle in eventData) {
-        heartEnabled.value = eventData[configuredEntities.heartToggle]?.s === 'on';
-      }
-      compactEnabled.value = eventData[configuredEntities.compactToggle]?.s === 'on';
     } else if (message.type === 'event' && message.event && message.event.c) {
       const eventData = message.event.c;
 
       for (const [entityId, diff] of Object.entries(eventData)) {
-        const newState = diff['+']?.s;
-        if (newState !== undefined && !isUnavailableState(newState)) {
-          entityStates.value[entityId] = newState;
-        }
-      }
-
-      const stepsDiff = eventData[configuredEntities.steps];
-      if (stepsDiff) {
-        const newSteps = stepsDiff['+']?.s;
-        if (isUnavailableState(newSteps)) {
-          steps.value = 0;
-        } else if (typeof newSteps === 'number' || typeof newSteps === 'string') {
-          const parsed = parseInt(String(newSteps), 10);
-          if (Number.isFinite(parsed)) {
-            steps.value = parsed;
-          }
-        }
-      }
-
-      const distanceDiff = eventData[configuredEntities.distance];
-      if (distanceDiff) {
-        const newDistance = distanceDiff['+']?.s;
-        if (isUnavailableState(newDistance)) {
-          distance.value = 0;
-        } else {
-          const parsed = parseFiniteFloat(newDistance);
-          if (parsed !== undefined) {
-            distance.value = parsed;
-          }
-        }
-      }
-
-      const speedDiff = eventData[configuredEntities.speed];
-      if (speedDiff) {
-        const newSpeed = speedDiff['+']?.s;
-        if (isUnavailableState(newSpeed)) {
-          speed.value = 0;
-        } else {
-          const parsed = parseFiniteFloat(newSpeed);
-          if (parsed !== undefined) {
-            speed.value = parsed;
-          }
-        }
-      }
-
-      applyToggleDiff(eventData[configuredEntities.brbToggle], brbEnabled);
-      applyToggleDiff(eventData[configuredEntities.heartToggle], heartEnabled);
-      applyToggleDiff(eventData[configuredEntities.compactToggle], compactEnabled);
-
-      const heartRateDiff = eventData[configuredEntities.heartRate];
-      if (heartRateDiff) {
-        const newHeartRate = heartRateDiff['+']?.s;
-        if (isUnavailableState(newHeartRate)) {
-          heartRate.value = 0;
-        } else {
-          const parsed = parseFiniteFloat(newHeartRate);
-          if (parsed !== undefined) {
-            heartRate.value = parsed;
-          }
-        }
+        applyEntityState(configuredEntities, entityId, diff['+']?.s);
       }
     }
   };

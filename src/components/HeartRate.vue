@@ -120,29 +120,14 @@ const stopAnimations = (): void => {
   }
 };
 
-// Watch for heart rate changes
-watch(heartRate, async newRate => {
-  if (newRate && heartEnabled.value && !connectionLost.value) {
-    await nextTick();
-    startBorderPulse();
-  } else {
-    stopAnimations();
-  }
-});
+// Same condition as the template's v-if; tracking the rate itself restarts the
+// pulse at the new tempo whenever it changes while the overlay is showing.
+const activeHeartRate = computed(() =>
+  heartEnabled.value && !connectionLost.value ? heartRate.value : 0
+);
 
-// Watch for heartEnabled changes
-watch(heartEnabled, async enabled => {
-  if (enabled && heartRate.value && !connectionLost.value) {
-    await nextTick();
-    startBorderPulse();
-  } else {
-    stopAnimations();
-  }
-});
-
-// Watch for connection-loss changes
-watch(connectionLost, async lost => {
-  if (!lost && heartEnabled.value && heartRate.value) {
+watch(activeHeartRate, async rate => {
+  if (rate) {
     await nextTick();
     startBorderPulse();
   } else {
