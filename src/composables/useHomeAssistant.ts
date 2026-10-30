@@ -345,7 +345,9 @@ const applyEntityState = (
 ): void => {
   if (state === undefined) return;
   const unavailable = isUnavailableState(state);
-  if (!unavailable) {
+  if (unavailable) {
+    delete entityStates.value[entityId];
+  } else {
     entityStates.value[entityId] = state;
   }
 

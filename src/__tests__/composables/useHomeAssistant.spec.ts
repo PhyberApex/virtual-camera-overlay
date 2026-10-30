@@ -1125,4 +1125,22 @@ describe('useHomeAssistant - stale heart rate', () => {
     vi.advanceTimersByTime(200_000);
     expect(result.heartRate.value).toBeTruthy();
   });
+
+  it('drops a previously recorded state when the entity becomes unavailable', async () => {
+    const { result, socket } = await mountFresh();
+    const entityId = 'sensor.ksmb_v1_7aed_current_distance';
+
+    socket.onmessage!({
+      data: JSON.stringify({ type: 'event', event: { a: { [entityId]: { s: '12' } } } }),
+    });
+    expect(result.getEntityState(entityId)).toBe('12');
+
+    socket.onmessage!({
+      data: JSON.stringify({
+        type: 'event',
+        event: { c: { [entityId]: { '+': { s: 'unavailable' } } } },
+      }),
+    });
+    expect(result.getEntityState(entityId)).toBeUndefined();
+  });
 });
