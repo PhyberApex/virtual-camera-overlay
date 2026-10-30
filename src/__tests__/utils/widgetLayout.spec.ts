@@ -4,6 +4,7 @@ import {
   computeCornerStyle,
   computeStageTransform,
   computeFaceAnchoredPosition,
+  computeFaceFollowOffset,
 } from '../../utils/widgetLayout';
 
 describe('computeWidgetPosition', () => {
@@ -127,5 +128,19 @@ describe('computeFaceAnchoredPosition', () => {
     expect(
       computeFaceAnchoredPosition({ x: 10, y: 0, width: 1900, height: 100 }, stage, size).x
     ).toBe(0);
+  });
+});
+
+describe('computeFaceFollowOffset', () => {
+  it('is the distance from the configured corner to the face-anchored position', () => {
+    expect(
+      computeFaceFollowOffset(
+        { x: 800, y: 300, width: 200, height: 260 },
+        'top-left',
+        { x: 20, y: 20 },
+        { width: 100, height: 80 },
+        { width: 1920, height: 1080 }
+      )
+    ).toEqual({ x: 1004, y: 370 });
   });
 });

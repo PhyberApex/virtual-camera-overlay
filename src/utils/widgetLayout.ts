@@ -1,3 +1,5 @@
+import type { FaceBox } from './framing';
+
 export type WidgetAnchor = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
 export interface Vector2 {
@@ -60,12 +62,24 @@ export const FACE_ANCHOR_GAP = 24;
  * Top-left position of a widget beside the head, vertically centred on the face (about ear
  * height): to the right of the face, flipping to the left when it would leave the stage.
  */
-export const computeFaceAnchoredPosition = (
-  face: { x: number; y: number; width: number; height: number },
-  stage: Size2,
-  size: Size2
-): Vector2 => {
+export const computeFaceAnchoredPosition = (face: FaceBox, stage: Size2, size: Size2): Vector2 => {
   const rightX = face.x + face.width + FACE_ANCHOR_GAP;
   const x = rightX + size.width > stage.width ? face.x - FACE_ANCHOR_GAP - size.width : rightX;
   return { x: Math.max(0, x), y: face.y + (face.height - size.height) / 2 };
+};
+
+/**
+ * Translation that moves a widget from its configured corner to its face-anchored position,
+ * so easing the translation to zero returns it to the corner.
+ */
+export const computeFaceFollowOffset = (
+  face: FaceBox,
+  anchor: WidgetAnchor,
+  offset: Vector2,
+  size: Size2,
+  stage: Size2
+): Vector2 => {
+  const target = computeFaceAnchoredPosition(face, stage, size);
+  const corner = computeWidgetPosition(anchor, offset, size, stage);
+  return { x: target.x - corner.x, y: target.y - corner.y };
 };

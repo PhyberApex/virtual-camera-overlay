@@ -30,12 +30,7 @@ import { useHomeAssistant } from '../composables/useHomeAssistant';
 import { useOverlayConfig } from '../composables/useOverlayConfig';
 import { getHeartRateZone, type HeartRateZone } from '../utils/heartRateZone';
 import { useTrackedFace } from '../composables/useFaceTracking';
-import {
-  computeCornerStyle,
-  computeFaceAnchoredPosition,
-  computeWidgetPosition,
-  STAGE_SIZE,
-} from '../utils/widgetLayout';
+import { computeCornerStyle, computeFaceFollowOffset, STAGE_SIZE } from '../utils/widgetLayout';
 import gsap from 'gsap';
 
 const { heartEnabled, heartRate, connectionLost } = useHomeAssistant();
@@ -56,23 +51,28 @@ const FOLLOW_EASE_S = 0.5;
 
 // The display sits in its configured corner; following the face is a translation away from it,
 // so easing back to the corner is easing the translation to zero.
+const FALLBACK_DISPLAY_SIZE = { width: 110, height: 90 };
+
 const followFace = (): void => {
-  const targets = [bpmDisplay.value, pulseWavesEl.value].filter(el => el !== null);
   const display = bpmDisplay.value;
-  if (!targets.length || !display) return;
-  let vars = { x: 0, y: 0 };
-  if (tracked.value && faceBox.value) {
-    const size = { width: display.offsetWidth || 110, height: display.offsetHeight || 90 };
-    const face = computeFaceAnchoredPosition(faceBox.value, STAGE_SIZE, size);
-    const corner = computeWidgetPosition(
-      heartRateLayout.value.anchor,
-      heartRateLayout.value.offset,
-      size,
-      STAGE_SIZE
-    );
-    vars = { x: face.x - corner.x, y: face.y - corner.y };
-  }
-  gsap.to(targets, { ...vars, duration: FOLLOW_EASE_S, ease: 'power2.out', overwrite: true });
+  if (!display) return;
+  // Both elements share the configured corner, so they share one translation.
+  const targets = [display, pulseWavesEl.value].filter(el => el !== null);
+  const size = {
+    width: display.offsetWidth || FALLBACK_DISPLAY_SIZE.width,
+    height: display.offsetHeight || FALLBACK_DISPLAY_SIZE.height,
+  };
+  const offset =
+    tracked.value && faceBox.value
+      ? computeFaceFollowOffset(
+          faceBox.value,
+          heartRateLayout.value.anchor,
+          heartRateLayout.value.offset,
+          size,
+          STAGE_SIZE
+        )
+      : { x: 0, y: 0 };
+  gsap.to(targets, { ...offset, duration: FOLLOW_EASE_S, ease: 'power2.out', overwrite: true });
 };
 
 watch([faceBox, tracked, heartRateLayout], followFace);
