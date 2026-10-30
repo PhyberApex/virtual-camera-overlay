@@ -31,8 +31,9 @@ layout as well, rather than introducing a second configuration mechanism.
   `steps` widget anchored `bottom-right` with a 30/30 offset at the current normal-mode size. No
   entity ID literal remains anywhere under `src/`.
 - Widget position is expressed as `anchor` + `offset` + `size` instead of absolute coordinates.
-  `src/utils/widgetLayout.ts` resolves `anchor`/`offset`/`size` against the current viewport into
-  an `{x, y}` position; `App.vue` recomputes it on window resize and, for the `steps` widget only,
+  `src/utils/widgetLayout.ts` resolves `anchor`/`offset`/`size` against the fixed 1920x1080 stage (the
+  window only rescales the stage) into
+  an `{x, y}` position; `App.vue` recomputes it, for the `steps` widget only,
   on compact-mode toggle (its compact-mode alternate size stays a code-level constant, unaffected
   by this change).
 - `HeartRate` and `BeRightBack` stay fixed, non-repositionable components; only the entity IDs they

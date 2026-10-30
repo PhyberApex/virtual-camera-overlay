@@ -2,42 +2,44 @@
   <div>
     <DevPanel />
 
-    <BeRightBack />
-    <HeartRate />
+    <div class="stage" :style="stageStyle">
+      <BeRightBack />
+      <HeartRate />
 
-    <div class="widgets-layer">
-      <template v-for="widget in widgets" :key="widget.id">
-        <WidgetTemperature
-          v-if="widget.type === 'temperature'"
-          :id="widget.id"
-          :position="widget.position"
-          :size="widget.size"
-          :entity-id="getWidgetEntityId(widget)"
-          :unit="getWidgetUnit(widget)"
-        />
-        <WidgetSensor
-          v-else-if="widget.type === 'sensor'"
-          :id="widget.id"
-          :position="widget.position"
-          :size="widget.size"
-          :entity-id="getWidgetEntityId(widget)"
-          :unit="getWidgetUnit(widget)"
-          :display-name="getWidgetDisplayName(widget)"
-        />
-        <WidgetSteps
-          v-else-if="widget.type === 'steps'"
-          :id="widget.id"
-          :position="widget.position"
-          :size="widget.size"
-          :should-show="steps > 0 && !connectionLost"
-        />
-      </template>
+      <div class="widgets-layer">
+        <template v-for="widget in widgets" :key="widget.id">
+          <WidgetTemperature
+            v-if="widget.type === 'temperature'"
+            :id="widget.id"
+            :position="widget.position"
+            :size="widget.size"
+            :entity-id="getWidgetEntityId(widget)"
+            :unit="getWidgetUnit(widget)"
+          />
+          <WidgetSensor
+            v-else-if="widget.type === 'sensor'"
+            :id="widget.id"
+            :position="widget.position"
+            :size="widget.size"
+            :entity-id="getWidgetEntityId(widget)"
+            :unit="getWidgetUnit(widget)"
+            :display-name="getWidgetDisplayName(widget)"
+          />
+          <WidgetSteps
+            v-else-if="widget.type === 'steps'"
+            :id="widget.id"
+            :position="widget.position"
+            :size="widget.size"
+            :should-show="steps > 0 && !connectionLost"
+          />
+        </template>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import DevPanel from './components/DevPanel.vue';
 import BeRightBack from './components/BeRightBack.vue';
 import HeartRate from './components/HeartRate.vue';
@@ -47,7 +49,7 @@ import WidgetSteps from './components/WidgetSteps.vue';
 import { useHomeAssistant } from './composables/useHomeAssistant';
 import { useWidgetManager, type Widget } from './composables/useWidgetManager';
 import { useOverlayConfig, type OverlayWidgetConfig } from './composables/useOverlayConfig';
-import { computeWidgetPosition } from './utils/widgetLayout';
+import { computeStageTransform, computeWidgetPosition, STAGE_SIZE } from './utils/widgetLayout';
 
 const { steps, compactEnabled, connectionLost } = useHomeAssistant();
 const { widgets, addWidget, updateWidget } = useWidgetManager();
@@ -71,22 +73,17 @@ const getWidgetSize = (widgetConfig: OverlayWidgetConfig): { width: number; heig
 
 const buildWidget = (widgetConfig: OverlayWidgetConfig): Widget => {
   const size = getWidgetSize(widgetConfig);
-  const viewport = { width: window.innerWidth, height: window.innerHeight };
   return {
     id: widgetConfig.id,
     type: widgetConfig.type,
     size,
-    position: computeWidgetPosition(widgetConfig.anchor, widgetConfig.offset, size, viewport),
+    position: computeWidgetPosition(widgetConfig.anchor, widgetConfig.offset, size, STAGE_SIZE),
     props: widgetConfig.props as Record<string, unknown> | undefined,
   };
 };
 
 const updateWidgetLayout = (widgetConfig: OverlayWidgetConfig): void => {
   updateWidget(widgetConfig.id, buildWidget(widgetConfig));
-};
-
-const updateAllWidgetLayouts = (): void => {
-  widgetConfigs.value.forEach(updateWidgetLayout);
 };
 
 const updateStepsWidgetLayouts = (): void => {
@@ -102,9 +99,6 @@ const buildWidgets = (): void => {
   widgetsBuilt = true;
 
   widgetConfigs.value.forEach(widgetConfig => addWidget(buildWidget(widgetConfig)));
-
-  // Update widget size and position on window resize
-  window.addEventListener('resize', updateAllWidgetLayouts);
 };
 
 // The config may only load after retries, so build widgets whenever it becomes valid.
@@ -117,8 +111,27 @@ onMounted(async () => {
   if (configValid) buildWidgets();
 });
 
+// Widgets resolve against stage units, so a window resize only rescales the stage.
+const stageTransform = ref(
+  computeStageTransform({ width: window.innerWidth, height: window.innerHeight })
+);
+const updateStageTransform = (): void => {
+  stageTransform.value = computeStageTransform({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
+};
+const stageStyle = computed(() => ({
+  width: `${STAGE_SIZE.width}px`,
+  height: `${STAGE_SIZE.height}px`,
+  left: `${stageTransform.value.left}px`,
+  top: `${stageTransform.value.top}px`,
+  transform: `scale(${stageTransform.value.scale})`,
+}));
+
+onMounted(() => window.addEventListener('resize', updateStageTransform));
 onUnmounted(() => {
-  window.removeEventListener('resize', updateAllWidgetLayouts);
+  window.removeEventListener('resize', updateStageTransform);
 });
 
 watch(compactEnabled, updateStepsWidgetLayouts);
@@ -131,6 +144,14 @@ watch(compactEnabled, updateStepsWidgetLayouts);
   position: absolute;
   top: 0;
   left: 0;
+  pointer-events: none;
+  background-color: #000000; /* letterbox bars around the stage */
+}
+
+.stage {
+  position: absolute;
+  transform-origin: top left;
+  overflow: hidden;
   pointer-events: none;
 }
 

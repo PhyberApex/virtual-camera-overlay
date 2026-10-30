@@ -72,7 +72,7 @@ This overlay is designed to be composited with your webcam feed in OBS, then out
 2. **Add the overlay** as a "Browser" source above your webcam:
    - For local development: use `http://localhost:5174/` (Vite dev server)
    - For production: host the built files on a web server or use "Local File" pointing to `dist/index.html`
-3. Set the Browser source width and height to match your OBS canvas size (e.g., 1920x1080)
+3. Set the Browser source width and height to match your OBS canvas size (e.g., 1920x1080); the overlay renders on a fixed 1920x1080 stage scaled to fit, with black bars for other aspect ratios
 4. **Important**: Check "Enable transparency" in the Browser Source properties
 5. **Start Virtual Camera** in OBS (Tools → Start Virtual Camera)
 6. In your video conferencing app (Zoom/Teams/Meet), select "OBS Virtual Camera" as your camera source

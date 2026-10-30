@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { computeWidgetPosition, computeCornerStyle } from '../../utils/widgetLayout';
+import {
+  computeWidgetPosition,
+  computeCornerStyle,
+  computeStageTransform,
+} from '../../utils/widgetLayout';
 
 describe('computeWidgetPosition', () => {
   const viewport = { width: 1920, height: 1080 };
@@ -66,6 +70,32 @@ describe('computeCornerStyle', () => {
     expect(computeCornerStyle('bottom-right', { x: 5, y: 15 })).toEqual({
       bottom: '15px',
       right: '5px',
+    });
+  });
+});
+
+describe('computeStageTransform', () => {
+  it('uses scale 1 and no offset when the window matches the stage', () => {
+    expect(computeStageTransform({ width: 1920, height: 1080 })).toEqual({
+      scale: 1,
+      left: 0,
+      top: 0,
+    });
+  });
+
+  it('letterboxes top and bottom in a taller window', () => {
+    expect(computeStageTransform({ width: 960, height: 900 })).toEqual({
+      scale: 0.5,
+      left: 0,
+      top: 180,
+    });
+  });
+
+  it('pillarboxes left and right in a wider window', () => {
+    expect(computeStageTransform({ width: 2560, height: 540 })).toEqual({
+      scale: 0.5,
+      left: 800,
+      top: 0,
     });
   });
 });
