@@ -170,7 +170,7 @@ onUnmounted(() => {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 10;
+  /* No z-index: stays in DOM order, so the vignette sits over the video and under the widgets layer */
 }
 
 /* Edge vignette: transparent centre fading to the zone color (currentColor) at the frame edges */

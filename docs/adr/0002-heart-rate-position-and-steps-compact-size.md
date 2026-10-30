@@ -22,7 +22,7 @@ fixed and non-positionable).
   `{ anchor: WidgetAnchor, offset: Vector2 }`, reusing the same `WidgetAnchor` and `Vector2` types
   as `widgets[].anchor`/`widgets[].offset`. It controls where the BPM display and its pulse-wave
   animation render; the two always move together, anchored to the same corner with the same
-  offset. The full-screen pulsing screen-border effect stays inset to the viewport, unaffected by
+  offset. The full-stage pulsing zone vignette stays inset to the viewport, unaffected by
   this field.
 - Unlike `entities`/`widgets`, `heartRate` fails **soft**, mirroring `maxHeartRate`'s existing
   independent fallback from #600: a missing `heartRate`, or one that fails shape validation (bad or
