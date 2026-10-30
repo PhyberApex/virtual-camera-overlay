@@ -57,4 +57,6 @@ fixed and non-positionable).
   `entities`/`widgets` gate and `maxHeartRate`'s silent fallback — now three fallback behaviors in
   one file: all-or-nothing (fatal), warn-and-fallback (heartRate), and silent-fallback
   (maxHeartRate). Any future field should pick deliberately from these, not invent a fourth.
+  **Amended by ADR-0003:** optional fields now share one warn-and-fallback style, so this
+  three-behavior split no longer holds.
 - A configuration UI, schema library, or live hot-reload remains out of scope.
