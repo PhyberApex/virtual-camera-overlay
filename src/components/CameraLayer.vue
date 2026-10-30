@@ -1,5 +1,5 @@
 <template>
-  <div class="camera-layer">
+  <div class="camera-layer" :class="{ blurred }">
     <div v-if="showVideo" ref="frameEl" class="camera-frame">
       <video
         ref="videoEl"
@@ -33,9 +33,13 @@ import {
 } from '../utils/framing';
 import { STAGE_SIZE } from '../utils/widgetLayout';
 
-const props = withDefaults(defineProps<{ mirror: boolean; framing?: FramingConfig }>(), {
-  framing: () => ({ ...DEFAULT_FRAMING_CONFIG }),
-});
+const props = withDefaults(
+  defineProps<{ mirror: boolean; framing?: FramingConfig; blurred?: boolean }>(),
+  {
+    blurred: false,
+    framing: () => ({ ...DEFAULT_FRAMING_CONFIG }),
+  }
+);
 
 const { stream, status, source, setSampleMissing } = useCamera();
 const videoEl = ref<HTMLVideoElement | null>(null);
@@ -118,6 +122,21 @@ const onVideoError = (): void => {
   position: absolute;
   inset: 0;
   background-color: #111111;
+  transition:
+    filter 0.4s ease,
+    transform 0.4s ease;
+}
+
+/* Scaled up slightly so the blur's soft edges stay outside the stage. */
+.camera-layer.blurred {
+  filter: blur(40px);
+  transform: scale(1.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .camera-layer {
+    transition: none;
+  }
 }
 
 .camera-frame {

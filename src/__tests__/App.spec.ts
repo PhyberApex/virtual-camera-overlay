@@ -323,4 +323,17 @@ describe('App', () => {
     const wrapper = shallowMount(App);
     expect(wrapper.findComponent(CameraLayer).props('mirror')).toBe(true);
   });
+
+  it('blurs the camera layer while Be Right Back is on and clears it when off', async () => {
+    brbEnabled.value = false;
+    const wrapper = shallowMount(App);
+    const layer = wrapper.findComponent(CameraLayer);
+    expect(layer.props('blurred')).toBe(false);
+    brbEnabled.value = true;
+    await nextTick();
+    expect(layer.props('blurred')).toBe(true);
+    brbEnabled.value = false;
+    await nextTick();
+    expect(layer.props('blurred')).toBe(false);
+  });
 });

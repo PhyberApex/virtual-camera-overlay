@@ -297,6 +297,7 @@ The following refinements were applied to elevate the design from "functional" t
 **BeRightBack Cohesion:**
 
 - Background stays fully opaque black, unlike the semi-transparent widgets — this is a privacy screen that hides the entire webcam feed, not a stylistic choice for cohesion with the widget look
+- The video underneath is also heavily blurred (`blur(40px)`, 0.4s transition) while Be Right Back is on, as a second layer of privacy
 - Changed accent from indigo → vital green to match overlay theme
 - Kept the 15 floating particle images drifting upward across the screen; title, subtitle and image list are configurable via `beRightBack` in `public/overlay-config.json` (ADR-0004)
 - Accent color now feels like part of the same design system, while opacity remains a deliberate exception for privacy

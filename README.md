@@ -6,7 +6,7 @@ A Vue.js-based overlay for displaying fitness tracking data from Home Assistant 
 
 ## Overview
 
-This application connects to a Home Assistant instance via WebSockets and displays real-time fitness metrics (steps, speed, distance, heart rate) on top of your webcam feed. Open it in Chrome app mode, or capture the window with OBS Studio's **virtual camera**, to use it in video conferencing apps (Zoom, Teams, Meet, etc.) so you can work out on a treadmill or exercise bike during meetings while showing colleagues you're actively engaged.
+This application connects to a Home Assistant instance via WebSockets and displays real-time fitness metrics (steps, speed, distance, heart rate) on top of your webcam feed. Open it in Chrome app mode and window-capture that window with OBS Studio's **virtual camera** to use it in video conferencing apps (Zoom, Teams, Meet, etc.) so you can work out on a treadmill or exercise bike during meetings while showing colleagues you're actively engaged.
 
 ## Features
 
@@ -22,7 +22,7 @@ This application connects to a Home Assistant instance via WebSockets and displa
 
 - Node.js 18+ and pnpm
 - Home Assistant instance with long-lived access token
-- A webcam (and optionally OBS Studio to expose the window as a virtual camera)
+- A webcam, Google Chrome and OBS Studio (to expose the Chrome window as a virtual camera)
 - Video conferencing app (Zoom, Teams, Meet, etc.)
 
 ### Installation
@@ -65,7 +65,30 @@ This application connects to a Home Assistant instance via WebSockets and displa
 
 ### Using the overlay as your camera
 
-The page owns the webcam: it requests the default camera on load (ideal 1920x1080 at 30 fps) and draws the widgets on top. Capture the window (for example with OBS window capture and its virtual camera) to feed it to your video conferencing app.
+The page owns the webcam: it requests the default camera on load (ideal 1920x1080 at 30 fps) and draws the widgets on top.
+
+1. **Open it as a direct https URL.** Camera access needs a secure context, so load the overlay
+   from its own `https://` address (or `http://localhost` in development). Embedding it in a Home
+   Assistant iframe panel does not work.
+2. **Launch Chrome in app mode** on the meeting machine so the page gets a chromeless window:
+
+   ```bash
+   # macOS
+   open -na "Google Chrome" --args --app=https://your-overlay-host/
+   # Linux
+   google-chrome --app=https://your-overlay-host/
+   ```
+
+3. **Choose the camera once** in Chrome's settings (Settings → Privacy and security → Site settings
+   → Camera): pick the default camera and allow it for the overlay's URL. The page always uses that
+   default camera.
+4. **Mirror or tune the picture** with the `camera` section of `public/overlay-config.json` (see
+   [Customizing Entities and Widgets](#customizing-entities-and-widgets)).
+5. **In OBS**, add a Window Capture of the Chrome window, start the virtual camera and select it in
+   your meeting app.
+
+While Be Right Back is on, the video is heavily blurred beneath the Be Right Back screen and
+sharpens again when it is turned off.
 
 If the camera is denied, missing or unplugged, a dark placeholder fills the stage while the widgets keep updating, and the page retries every few seconds. In development, press `u` for the DevPanel and switch the video source to a local sample clip at `public/dev-sample.mp4` (gitignored).
 
