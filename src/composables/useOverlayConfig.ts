@@ -81,10 +81,12 @@ const WIDGET_TYPES: WidgetType[] = ['steps', 'temperature', 'sensor'];
 
 const maxHeartRate: Ref<number> = ref(DEFAULT_MAX_HEART_RATE);
 const heartRateLayout: Ref<HeartRateLayout> = ref({ ...DEFAULT_HEART_RATE_LAYOUT });
-const beRightBack: Ref<BeRightBackConfig> = ref({
+const defaultBeRightBack = (): BeRightBackConfig => ({
   ...DEFAULT_BE_RIGHT_BACK,
   particles: [...DEFAULT_BE_RIGHT_BACK.particles],
 });
+
+const beRightBack: Ref<BeRightBackConfig> = ref(defaultBeRightBack());
 const entities: Ref<OverlayEntities | null> = ref(null);
 const widgets: Ref<OverlayWidgetConfig[]> = ref([]);
 
@@ -121,10 +123,7 @@ const isValidHeartRateLayout = (value: unknown): value is HeartRateLayout =>
 
 // Each field falls back on its own: absent is silent, invalid warns once and uses the default.
 const resolveBeRightBack = (value: unknown): BeRightBackConfig => {
-  const resolved: BeRightBackConfig = {
-    ...DEFAULT_BE_RIGHT_BACK,
-    particles: [...DEFAULT_BE_RIGHT_BACK.particles],
-  };
+  const resolved = defaultBeRightBack();
   if (value === undefined) return resolved;
   if (!isRecord(value) || Array.isArray(value)) {
     console.warn(

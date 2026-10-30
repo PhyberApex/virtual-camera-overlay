@@ -137,7 +137,7 @@ describe('useOverlayConfig', () => {
         warnSpy.mockRestore();
       });
 
-      it('warns once per invalid field and falls back for that field only', async () => {
+      it('warns once for each invalid field and falls back for that field only', async () => {
         const { beRightBack, warnSpy } = await load({
           title: 'BRB',
           subtitle: 42,

@@ -57,7 +57,7 @@ interface Particle {
 
 // Layouts are computed once per mount so re-renders don't jitter the particle positions;
 // the configured image list only decides which image each slot shows (cycling).
-const layouts: Particle['style'][] = Array.from({ length: PARTICLE_COUNT }, () => ({
+const particleStyles: Particle['style'][] = Array.from({ length: PARTICLE_COUNT }, () => ({
   left: `${Math.random() * 100}%`,
   top: `${Math.random() * 100}%`,
   animationDelay: `${Math.random() * 5}s`,
@@ -68,7 +68,7 @@ const layouts: Particle['style'][] = Array.from({ length: PARTICLE_COUNT }, () =
 const particles = computed<Particle[]>(() => {
   const images = beRightBack.value.particles;
   if (images.length === 0) return [];
-  return layouts.map((style, i) => ({ key: i, src: images[i % images.length]!, style }));
+  return particleStyles.map((style, i) => ({ key: i, src: images[i % images.length]!, style }));
 });
 </script>
 
