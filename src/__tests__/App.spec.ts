@@ -2,8 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { shallowMount, flushPromises, enableAutoUnmount } from '@vue/test-utils';
 import App from '../App.vue';
 import { STAGE_SIZE } from '../utils/widgetLayout';
+import CameraLayer from '../components/CameraLayer.vue';
 import WidgetSteps from '../components/WidgetSteps.vue';
-import { nextTick, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import type { Widget } from '../composables/useWidgetManager';
 import type { OverlayWidgetConfig } from '../composables/useOverlayConfig';
 
@@ -29,6 +30,24 @@ vi.mock('../composables/useHomeAssistant', () => ({
     distance,
     connectionLost,
     getEntityState: () => undefined,
+  }),
+}));
+
+const cameraStatus = ref('live');
+const startCamera = vi.fn();
+const stopCamera = vi.fn();
+const cameraMirror = ref(false);
+vi.mock('../composables/useCamera', () => ({
+  SAMPLE_VIDEO_URL: 'dev-sample.mp4',
+  useCamera: () => ({
+    stream: ref(null),
+    status: cameraStatus,
+    source: ref('webcam'),
+    sampleMissing: ref(false),
+    start: startCamera,
+    stop: stopCamera,
+    setSource: vi.fn(),
+    setSampleMissing: vi.fn(),
   }),
 }));
 
@@ -68,6 +87,7 @@ vi.mock('../composables/useOverlayConfig', () => ({
     widgets: widgetConfigs,
     entities: ref(null),
     maxHeartRate: ref(185),
+    camera: computed(() => ({ mirror: cameraMirror.value })),
     configLoaded,
     ensureOverlayConfigLoaded: () => Promise.resolve(configValid.value),
   }),
@@ -84,6 +104,10 @@ describe('App', () => {
     speed.value = 0;
     distance.value = 0;
     connectionLost.value = false;
+    cameraStatus.value = 'live';
+    cameraMirror.value = false;
+    startCamera.mockClear();
+    stopCamera.mockClear();
     widgets.value = [];
     widgetConfigs.value = [defaultStepsWidgetConfig];
     configValid.value = true;
@@ -273,5 +297,30 @@ describe('App', () => {
     await flushPromises();
 
     expect(addWidget).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts the camera on mount and stops it on unmount', () => {
+    const wrapper = shallowMount(App);
+    expect(startCamera).toHaveBeenCalledTimes(1);
+    wrapper.unmount();
+    expect(stopCamera).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['denied', 'unavailable', 'ended'])(
+    'keeps the widgets layer mounted and live when the camera is %s',
+    async status => {
+      cameraStatus.value = status;
+      steps.value = 1000;
+      const wrapper = shallowMount(App);
+      await flushPromises();
+      expect(wrapper.find('.widgets-layer').exists()).toBe(true);
+      expect(wrapper.findComponent(WidgetSteps).props('shouldShow')).toBe(true);
+    }
+  );
+
+  it('passes the configured mirror flag to the camera layer', async () => {
+    cameraMirror.value = true;
+    const wrapper = shallowMount(App);
+    expect(wrapper.findComponent(CameraLayer).props('mirror')).toBe(true);
   });
 });

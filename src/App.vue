@@ -3,6 +3,7 @@
     <DevPanel />
 
     <div class="stage" :style="stageStyle">
+      <CameraLayer :mirror="camera.mirror" />
       <BeRightBack />
       <HeartRate />
 
@@ -41,11 +42,13 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import DevPanel from './components/DevPanel.vue';
+import CameraLayer from './components/CameraLayer.vue';
 import BeRightBack from './components/BeRightBack.vue';
 import HeartRate from './components/HeartRate.vue';
 import WidgetTemperature from './components/WidgetTemperature.vue';
 import WidgetSensor from './components/WidgetSensor.vue';
 import WidgetSteps from './components/WidgetSteps.vue';
+import { useCamera } from './composables/useCamera';
 import { useHomeAssistant } from './composables/useHomeAssistant';
 import { useWidgetManager, type Widget } from './composables/useWidgetManager';
 import { useOverlayConfig, type OverlayWidgetConfig } from './composables/useOverlayConfig';
@@ -53,7 +56,13 @@ import { computeStageTransform, computeWidgetPosition, STAGE_SIZE } from './util
 
 const { steps, compactEnabled, connectionLost } = useHomeAssistant();
 const { widgets, addWidget, updateWidget } = useWidgetManager();
-const { widgets: widgetConfigs, configLoaded, ensureOverlayConfigLoaded } = useOverlayConfig();
+const {
+  widgets: widgetConfigs,
+  camera,
+  configLoaded,
+  ensureOverlayConfigLoaded,
+} = useOverlayConfig();
+const { start: startCamera, stop: stopCamera } = useCamera();
 
 const getWidgetEntityId = (widget: Widget): string =>
   (widget.props?.entityId as string | undefined) ?? '';
@@ -129,8 +138,12 @@ const stageStyle = computed(() => ({
   transform: `scale(${stageTransform.value.scale})`,
 }));
 
-onMounted(() => window.addEventListener('resize', updateStageTransform));
+onMounted(() => {
+  window.addEventListener('resize', updateStageTransform);
+  startCamera();
+});
 onUnmounted(() => {
+  stopCamera();
   window.removeEventListener('resize', updateStageTransform);
 });
 

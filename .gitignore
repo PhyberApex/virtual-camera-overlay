@@ -37,3 +37,5 @@ public/app-config.json
 # AI
 .agents/
 .claude/
+# Local sample clip for the DevPanel video source toggle
+public/dev-sample.mp4

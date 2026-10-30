@@ -44,6 +44,22 @@
         </div>
       </div>
       <div class="mb-2">
+        <div class="flex justify-between items-center">
+          <p>Video source</p>
+          <select
+            :value="source"
+            class="bg-gray-700 rounded px-1 text-sm"
+            @change="setSource(($event.target as HTMLSelectElement).value as VideoSource)"
+          >
+            <option value="webcam">Webcam</option>
+            <option value="sample">Sample</option>
+          </select>
+        </div>
+        <p v-if="source === 'sample' && sampleMissing" class="text-xs text-yellow-500 mt-1">
+          Put a clip at public/dev-sample.mp4 (gitignored)
+        </p>
+      </div>
+      <div class="mb-2">
         <p class="mb-1">Send Events</p>
         <div class="flex space-x-2">
           <select v-model="eventToFire" class="bg-gray-700 rounded px-1 text-sm flex-1">
@@ -69,6 +85,7 @@
 <script setup lang="ts">
 import { computed, ref, type ComputedRef, type Ref } from 'vue';
 import { useHomeAssistant } from '../composables/useHomeAssistant';
+import { useCamera, type VideoSource } from '../composables/useCamera';
 import { onKeyStroke } from '@vueuse/core';
 
 // Type definition for available events
@@ -91,6 +108,8 @@ const {
   setHeartEnabled,
   setCompactEnabled,
 } = useHomeAssistant(true);
+
+const { source, sampleMissing, setSource } = useCamera();
 
 const isDev: Ref<boolean> = ref(false);
 const localConnectionState: Ref<'disconnected' | 'authenticating' | 'connected'> = ref(
