@@ -111,6 +111,55 @@ describe('HeartRate', () => {
     expect(wrapper.find('.pulse-waves').attributes('style')).toContain('right: 40px');
   });
 
+  describe('vignette', () => {
+    beforeEach(() => {
+      heartEnabled.value = true;
+      connectionLost.value = false;
+      maxHeartRate.value = 200;
+    });
+
+    it('is present while a heart rate is shown, with the zone class', () => {
+      heartRate.value = 150;
+      const wrapper = mount(HeartRate);
+      expect(wrapper.find('.vignette').exists()).toBe(true);
+      expect(wrapper.find('.vignette').classes()).toContain('zone-exercise');
+      expect(wrapper.find('.screen-border').exists()).toBe(false);
+    });
+
+    it('follows the zone as the rate changes', async () => {
+      heartRate.value = 60;
+      const wrapper = mount(HeartRate);
+      heartRate.value = 190;
+      await nextTick();
+      expect(wrapper.find('.vignette').classes()).toContain('zone-maximum');
+    });
+
+    it('is absent without a heart rate', () => {
+      heartRate.value = 0;
+      expect(mount(HeartRate).find('.vignette').exists()).toBe(false);
+    });
+
+    it('is absent when the display is disabled or the connection is lost', () => {
+      heartRate.value = 72;
+      heartEnabled.value = false;
+      expect(mount(HeartRate).find('.vignette').exists()).toBe(false);
+      heartEnabled.value = true;
+      connectionLost.value = true;
+      expect(mount(HeartRate).find('.vignette').exists()).toBe(false);
+    });
+
+    it('pulses with a period derived from the BPM', () => {
+      const timelineSpy = vi.spyOn(gsap, 'timeline');
+      heartRate.value = 60;
+      mount(HeartRate);
+      const tl = timelineSpy.mock.results.at(-1)!.value as gsap.core.Timeline;
+      // 0.1 + 0.3 + 0.08 + (60/60 - 0.48) = one beat per second
+      expect(tl.duration()).toBeCloseTo(1, 5);
+      timelineSpy.mockRestore();
+      tl.kill();
+    });
+  });
+
   describe('face anchoring', () => {
     let toSpy: ReturnType<typeof vi.spyOn>;
     const followCalls = (): Record<string, number>[] =>
