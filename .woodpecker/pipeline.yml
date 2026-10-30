@@ -16,8 +16,6 @@ steps:
     image: node:26
     volumes:
       - pnpm_cache:/root/.local/share/pnpm/store
-    when:
-      - event: pull_request
     commands:
       - npm install -g pnpm@10
       - pnpm install --frozen-lockfile
@@ -39,17 +37,12 @@ steps:
         from_secret: smb_user
       SMB_PASS:
         from_secret: smb_password
-    volumes:
-      - pnpm_cache:/root/.local/share/pnpm/store
+    # Reuses the dist/ and node_modules the shared workspace carries over from
+    # build-test-lint; only pnpm itself (a global, not in the workspace) is
+    # reinstalled so `pnpm run deploy` resolves.
+    depends_on: [build-test-lint]
     commands:
       - npm install -g pnpm@10
-      - pnpm install --frozen-lockfile
-      - pnpm lint:check
-      - npx prettier --check src scripts
-      - pnpm typecheck
-      - pnpm test:coverage
-      - cp .env.example .env || true
-      - pnpm build
       # Install smbclient
       - apt-get update && apt-get install -y smbclient
       # Hashes dist/ (excluding app-config.json), skips the upload on an
