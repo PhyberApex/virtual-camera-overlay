@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { ref } from 'vue';
+import { nextTick, ref } from 'vue';
+import gsap from 'gsap';
 import HeartRate from '../../components/HeartRate.vue';
 import type { WidgetAnchor, Vector2 } from '../../utils/widgetLayout';
 
@@ -26,6 +27,12 @@ vi.mock('../../composables/useHomeAssistant', () => ({
     heartRate,
     connectionLost,
   }),
+}));
+
+const faceBox = ref<{ x: number; y: number; width: number; height: number } | null>(null);
+const tracked = ref(false);
+vi.mock('../../composables/useFaceTracking', () => ({
+  useTrackedFace: () => ({ faceBox, tracked }),
 }));
 
 vi.mock('../../composables/useOverlayConfig', () => ({
@@ -102,5 +109,63 @@ describe('HeartRate', () => {
     expect(wrapper.find('.bpm-display').attributes('style')).toContain('right: 40px');
     expect(wrapper.find('.pulse-waves').attributes('style')).toContain('bottom: 10px');
     expect(wrapper.find('.pulse-waves').attributes('style')).toContain('right: 40px');
+  });
+
+  describe('face anchoring', () => {
+    let toSpy: ReturnType<typeof vi.spyOn>;
+    const followCalls = (): Record<string, number>[] =>
+      toSpy.mock.calls
+        .map((c: unknown[]) => c[1] as Record<string, number>)
+        .filter((v: Record<string, number>) => 'x' in v && 'y' in v);
+
+    beforeEach(() => {
+      heartEnabled.value = true;
+      heartRate.value = 72;
+      connectionLost.value = false;
+      faceBox.value = null;
+      tracked.value = false;
+      toSpy = vi.spyOn(gsap, 'to').mockImplementation(() => ({}) as gsap.core.Tween);
+    });
+
+    afterEach(() => toSpy.mockRestore());
+
+    it('eases beside the head, right of the face, while tracked', async () => {
+      mount(HeartRate);
+      faceBox.value = { x: 800, y: 300, width: 200, height: 260 };
+      tracked.value = true;
+      await nextTick();
+      // jsdom measures 0, so the fallback 110x90 widget in a top-left 20/20 corner applies.
+      const last = followCalls().at(-1)!;
+      expect(last.x).toBe(1024 - 20);
+      expect(last.y).toBe(300 + (260 - 90) / 2 - 20);
+    });
+
+    it('flips to the left of the head near the right edge of the stage', async () => {
+      mount(HeartRate);
+      faceBox.value = { x: 1700, y: 300, width: 200, height: 260 };
+      tracked.value = true;
+      await nextTick();
+      expect(followCalls().at(-1)!.x).toBe(1700 - 24 - 110 - 20);
+    });
+
+    it('eases back to the configured corner when tracking is lost', async () => {
+      mount(HeartRate);
+      faceBox.value = { x: 800, y: 300, width: 200, height: 260 };
+      tracked.value = true;
+      await nextTick();
+      tracked.value = false;
+      faceBox.value = null;
+      await nextTick();
+      expect(followCalls().at(-1)).toMatchObject({ x: 0, y: 0 });
+    });
+
+    it('stays hidden without a heart rate even while a face is tracked', async () => {
+      heartRate.value = 0;
+      const wrapper = mount(HeartRate);
+      faceBox.value = { x: 800, y: 300, width: 200, height: 260 };
+      tracked.value = true;
+      await nextTick();
+      expect(wrapper.find('.heart-rate-overlay').exists()).toBe(false);
+    });
   });
 });

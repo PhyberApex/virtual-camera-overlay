@@ -4,7 +4,7 @@
     <div ref="screenBorder" class="screen-border" :class="getHeartRateClass()"></div>
 
     <!-- Pulse waves, anchored to the configured corner -->
-    <div class="pulse-waves" :style="cornerStyle">
+    <div ref="pulseWavesEl" class="pulse-waves" :style="cornerStyle">
       <div
         v-for="wave in 3"
         :key="wave"
@@ -16,7 +16,7 @@
     </div>
 
     <!-- Small BPM display with zone indicator, anchored to the same corner -->
-    <div class="bpm-display" :class="getHeartRateClass()" :style="cornerStyle">
+    <div ref="bpmDisplay" class="bpm-display" :class="getHeartRateClass()" :style="cornerStyle">
       <div class="bpm-value">{{ heartRate }}</div>
       <div class="bpm-label">BPM</div>
       <div class="bpm-zone">{{ getHeartRateZoneName() }}</div>
@@ -29,7 +29,8 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick, type Ref } from
 import { useHomeAssistant } from '../composables/useHomeAssistant';
 import { useOverlayConfig } from '../composables/useOverlayConfig';
 import { getHeartRateZone, type HeartRateZone } from '../utils/heartRateZone';
-import { computeCornerStyle } from '../utils/widgetLayout';
+import { useTrackedFace } from '../composables/useFaceTracking';
+import { computeCornerStyle, computeFaceFollowOffset, STAGE_SIZE } from '../utils/widgetLayout';
 import gsap from 'gsap';
 
 const { heartEnabled, heartRate, connectionLost } = useHomeAssistant();
@@ -41,6 +42,42 @@ const pulseWaves: Ref<HTMLDivElement[]> = ref([]);
 const cornerStyle = computed(() =>
   computeCornerStyle(heartRateLayout.value.anchor, heartRateLayout.value.offset)
 );
+
+const bpmDisplay: Ref<HTMLDivElement | null> = ref(null);
+const pulseWavesEl: Ref<HTMLDivElement | null> = ref(null);
+const { faceBox, tracked } = useTrackedFace();
+
+const FOLLOW_EASE_S = 0.5;
+
+// The display sits in its configured corner; following the face is a translation away from it,
+// so easing back to the corner is easing the translation to zero.
+const FALLBACK_DISPLAY_SIZE = { width: 110, height: 90 };
+
+const followFace = (): void => {
+  const display = bpmDisplay.value;
+  if (!display) return;
+  // Both elements share the configured corner, so they share one translation.
+  const targets = [display, pulseWavesEl.value].filter(el => el !== null);
+  const size = {
+    width: display.offsetWidth || FALLBACK_DISPLAY_SIZE.width,
+    height: display.offsetHeight || FALLBACK_DISPLAY_SIZE.height,
+  };
+  const offset =
+    tracked.value && faceBox.value
+      ? computeFaceFollowOffset(
+          faceBox.value,
+          heartRateLayout.value.anchor,
+          heartRateLayout.value.offset,
+          size,
+          STAGE_SIZE
+        )
+      : { x: 0, y: 0 };
+  gsap.to(targets, { ...offset, duration: FOLLOW_EASE_S, ease: 'power2.out', overwrite: true });
+};
+
+watch([faceBox, tracked, heartRateLayout], followFace);
+// The elements are recreated whenever the display reappears.
+watch(bpmDisplay, followFace, { flush: 'post' });
 
 let borderPulseAnimation: gsap.core.Timeline | null = null;
 
