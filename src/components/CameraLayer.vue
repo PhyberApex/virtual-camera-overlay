@@ -45,7 +45,9 @@ const message = computed(() => {
 watch(
   [stream, videoEl, source],
   () => {
-    if (videoEl.value && source.value === 'webcam') videoEl.value.srcObject = stream.value;
+    if (videoEl.value) {
+      videoEl.value.srcObject = source.value === 'webcam' ? stream.value : null;
+    }
   },
   { flush: 'post', immediate: true }
 );

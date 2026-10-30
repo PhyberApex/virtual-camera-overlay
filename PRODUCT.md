@@ -10,7 +10,7 @@ People who take video meetings (Zoom, Teams, Meet) while working out on a treadm
 
 ## Product Purpose
 
-Virtual Camera Overlay connects to Home Assistant via WebSocket to display live fitness metrics (steps, speed, distance, heart rate) as a transparent overlay on a webcam feed using OBS virtual camera. Success means being able to stay active during meetings while maintaining professional presence. The overlay communicates effort and intentionality without being distracting or requiring explanation.
+Virtual Camera Overlay connects to Home Assistant via WebSocket to display live fitness metrics (steps, speed, distance, heart rate) on top of the webcam feed the page itself displays. Success means being able to stay active during meetings while maintaining professional presence. The overlay communicates effort and intentionality without being distracting or requiring explanation.
 
 ## Brand Personality
 

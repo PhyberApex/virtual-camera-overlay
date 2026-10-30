@@ -90,7 +90,7 @@ components:
 
 This system is built for people working out during video meetings. It's visible enough to show colleagues you're actively engaged and getting your steps in, but subtle enough not to dominate the call. The aesthetic is practical, energetic, data-forward: no corporate blandness, no clinical fitness tracking sterility. Every widget earns its place by communicating effort and intention without requiring explanation.
 
-The overlay must work against varied backgrounds (home office, gym, outdoor) and in small video thumbnails. Transparency is non-negotiable. Widgets use semi-transparent backgrounds with backdrop blur to ensure readability regardless of what's behind them. Heart rate visualization scales with intensity: the interface becomes more visually active as the user's physical effort increases.
+The overlay must work against varied backgrounds (home office, gym, outdoor) and in small video thumbnails. The page now draws the webcam itself, so widget transparency is what matters. Widgets use semi-transparent backgrounds with backdrop blur to ensure readability regardless of what's behind them. Heart rate visualization scales with intensity: the interface becomes more visually active as the user's physical effort increases.
 
 **Key Characteristics:**
 
