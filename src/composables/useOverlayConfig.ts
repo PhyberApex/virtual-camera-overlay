@@ -215,10 +215,12 @@ const loadOverlayConfig = (): Promise<boolean> => {
         heartRateLayout.value = validConfig.heartRate;
       } else {
         heartRateLayout.value = { ...DEFAULT_HEART_RATE_LAYOUT };
-        console.warn(
-          '[OverlayConfig] Invalid or missing heartRate config; falling back to top-left, {x: 20, y: 20}',
-          validConfig.heartRate
-        );
+        if (validConfig.heartRate !== undefined) {
+          console.warn(
+            '[OverlayConfig] Invalid heartRate config; falling back to top-left, {x: 20, y: 20}',
+            validConfig.heartRate
+          );
+        }
       }
       configUnreachable.value = false;
       configLoaded.value = true;
