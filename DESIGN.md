@@ -298,7 +298,7 @@ The following refinements were applied to elevate the design from "functional" t
 
 - Background stays fully opaque black, unlike the semi-transparent widgets — this is a privacy screen that hides the entire webcam feed, not a stylistic choice for cohesion with the widget look
 - Changed accent from indigo → vital green to match overlay theme
-- Kept the 15 floating particle images drifting upward across the screen
+- Kept the 15 floating particle images drifting upward across the screen; title, subtitle and image list are configurable via `beRightBack` in `public/overlay-config.json` (ADR-0004)
 - Accent color now feels like part of the same design system, while opacity remains a deliberate exception for privacy
 
 **Feature Removals:**

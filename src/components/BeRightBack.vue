@@ -14,9 +14,9 @@
 
     <div class="brb-content">
       <!-- Message in vital green -->
-      <h1 ref="title" class="brb-title">Be Right Back</h1>
+      <h1 ref="title" class="brb-title">{{ beRightBack.title }}</h1>
 
-      <p ref="subtitle" class="brb-subtitle">I'll be back in a moment!</p>
+      <p ref="subtitle" class="brb-subtitle">{{ beRightBack.subtitle }}</p>
 
       <!-- Loading dots in vital green -->
       <div class="brb-dots">
@@ -32,21 +32,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, type Ref } from 'vue';
+import { computed, ref, type Ref } from 'vue';
 import { useHomeAssistant } from '../composables/useHomeAssistant';
+import { useOverlayConfig } from '../composables/useOverlayConfig';
 
 const { brbEnabled } = useHomeAssistant();
+const { beRightBack } = useOverlayConfig();
 const title: Ref<HTMLHeadingElement | null> = ref(null);
 const subtitle: Ref<HTMLParagraphElement | null> = ref(null);
 
-// Emoji images for particles
-const emojiImages = [
-  'rain/janiswow.png',
-  'rain/janisreally.png',
-  'rain/janisapproved.png',
-  'rain/janiswhy.png',
-  'rain/mortyxmas.png',
-];
+const PARTICLE_COUNT = 15;
 
 interface Particle {
   key: number;
@@ -60,18 +55,21 @@ interface Particle {
   };
 }
 
-// Computed once per mount so re-renders don't jitter the particle layout.
-const particles: Particle[] = Array.from({ length: 15 }, (_, i) => ({
-  key: i,
-  src: emojiImages[i % emojiImages.length]!,
-  style: {
-    left: `${Math.random() * 100}%`,
-    top: `${Math.random() * 100}%`,
-    animationDelay: `${Math.random() * 5}s`,
-    animationDuration: `${8 + Math.random() * 4}s`,
-    width: `${40 + Math.random() * 30}px`,
-  },
+// Layouts are computed once per mount so re-renders don't jitter the particle positions;
+// the configured image list only decides which image each slot shows (cycling).
+const layouts: Particle['style'][] = Array.from({ length: PARTICLE_COUNT }, () => ({
+  left: `${Math.random() * 100}%`,
+  top: `${Math.random() * 100}%`,
+  animationDelay: `${Math.random() * 5}s`,
+  animationDuration: `${8 + Math.random() * 4}s`,
+  width: `${40 + Math.random() * 30}px`,
 }));
+
+const particles = computed<Particle[]>(() => {
+  const images = beRightBack.value.particles;
+  if (images.length === 0) return [];
+  return layouts.map((style, i) => ({ key: i, src: images[i % images.length]!, style }));
+});
 </script>
 
 <style scoped>
