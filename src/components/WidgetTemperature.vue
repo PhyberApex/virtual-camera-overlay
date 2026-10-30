@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import WidgetBase from './WidgetBase.vue';
 import { useHomeAssistant } from '../composables/useHomeAssistant';
 
@@ -10,14 +11,16 @@ const props = defineProps<{
   unit?: string;
 }>();
 
-const { getEntityState } = useHomeAssistant();
+const { getEntityState, connectionLost } = useHomeAssistant();
+const state = computed(() => getEntityState(props.entityId));
+const shouldShow = computed(() => state.value !== undefined && !connectionLost.value);
 const displayUnit = props.unit ?? '°C';
 </script>
 
 <template>
-  <WidgetBase :id="id" type="temperature" :position="position" :size="size">
+  <WidgetBase v-if="shouldShow" :id="id" type="temperature" :position="position" :size="size">
     <div class="widget-temperature">
-      <div class="temperature-value">{{ getEntityState(entityId) }}{{ displayUnit }}</div>
+      <div class="temperature-value">{{ state }}{{ displayUnit }}</div>
       <div class="temperature-entity">{{ entityId }}</div>
     </div>
   </WidgetBase>
@@ -34,13 +37,14 @@ const displayUnit = props.unit ?? '°C';
 
 .temperature-value {
   font-size: 2rem;
-  font-weight: bold;
-  color: #fff;
+  font-weight: 700;
+  color: var(--color-text-primary);
   margin-bottom: 4px;
 }
 
 .temperature-entity {
   font-size: 0.8rem;
-  color: #aaa;
+  font-weight: 400;
+  color: var(--color-text-muted);
 }
 </style>

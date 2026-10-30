@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import WidgetBase from './WidgetBase.vue';
 import { useHomeAssistant } from '../composables/useHomeAssistant';
 
@@ -11,15 +12,17 @@ const props = defineProps<{
   displayName?: string;
 }>();
 
-const { getEntityState } = useHomeAssistant();
+const { getEntityState, connectionLost } = useHomeAssistant();
+const state = computed(() => getEntityState(props.entityId));
+const shouldShow = computed(() => state.value !== undefined && !connectionLost.value);
 const name = props.displayName ?? props.entityId;
 </script>
 
 <template>
-  <WidgetBase :id="id" type="sensor" :position="position" :size="size">
+  <WidgetBase v-if="shouldShow" :id="id" type="sensor" :position="position" :size="size">
     <div class="widget-sensor">
       <div class="sensor-name">{{ name }}</div>
-      <div class="sensor-value">{{ getEntityState(entityId) }}{{ unit ?? '' }}</div>
+      <div class="sensor-value">{{ state }}{{ unit ?? '' }}</div>
     </div>
   </WidgetBase>
 </template>
@@ -35,14 +38,15 @@ const name = props.displayName ?? props.entityId;
 
 .sensor-name {
   font-size: 0.9rem;
-  color: #aaa;
+  color: var(--color-text-secondary);
+  font-weight: 400;
   margin-bottom: 4px;
   text-align: center;
 }
 
 .sensor-value {
   font-size: 1.8rem;
-  font-weight: bold;
-  color: #fff;
+  font-weight: 700;
+  color: var(--color-text-primary);
 }
 </style>
