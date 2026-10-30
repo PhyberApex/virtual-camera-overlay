@@ -1,7 +1,7 @@
 <template>
   <div v-if="heartEnabled && heartRate && !connectionLost" class="heart-rate-overlay">
-    <!-- Pulsing screen border -->
-    <div ref="screenBorder" class="screen-border" :class="getHeartRateClass()"></div>
+    <!-- Edge vignette tinted with the zone color, pulsing at the BPM -->
+    <div ref="vignette" class="vignette" :class="getHeartRateClass()"></div>
 
     <!-- Pulse waves, anchored to the configured corner -->
     <div ref="pulseWavesEl" class="pulse-waves" :style="cornerStyle">
@@ -36,7 +36,7 @@ import gsap from 'gsap';
 const { heartEnabled, heartRate, connectionLost } = useHomeAssistant();
 const { maxHeartRate, heartRateLayout } = useOverlayConfig();
 
-const screenBorder: Ref<HTMLDivElement | null> = ref(null);
+const vignette: Ref<HTMLDivElement | null> = ref(null);
 const pulseWaves: Ref<HTMLDivElement[]> = ref([]);
 
 const cornerStyle = computed(() =>
@@ -79,7 +79,7 @@ watch([faceBox, tracked, heartRateLayout], followFace);
 // The elements are recreated whenever the display reappears.
 watch(bpmDisplay, followFace, { flush: 'post' });
 
-let borderPulseAnimation: gsap.core.Timeline | null = null;
+let vignettePulseAnimation: gsap.core.Timeline | null = null;
 
 const getHeartRateZoneForDisplay = (): HeartRateZone => {
   if (!heartRate.value) return 'resting';
@@ -92,40 +92,40 @@ const getHeartRateClass = (): string => `zone-${getHeartRateZoneForDisplay()}`;
 // Get zone name for display (for viewers to understand colors)
 const getHeartRateZoneName = (): string => getHeartRateZoneForDisplay();
 
-// Start pulsing border animation
-const startBorderPulse = (): void => {
-  if (!screenBorder.value || !heartRate.value) return;
+// Start pulsing vignette animation
+const startVignettePulse = (): void => {
+  if (!vignette.value || !heartRate.value) return;
 
   // Check for reduced motion preference
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (prefersReducedMotion) return;
 
   // Stop existing animation
-  if (borderPulseAnimation) borderPulseAnimation.kill();
+  if (vignettePulseAnimation) vignettePulseAnimation.kill();
 
   // Calculate pulse interval based on heart rate
   const beatInterval = 60 / heartRate.value;
 
-  // Create pulsing border animation
-  borderPulseAnimation = gsap.timeline({ repeat: -1 });
+  // Create pulsing vignette animation
+  vignettePulseAnimation = gsap.timeline({ repeat: -1 });
 
-  borderPulseAnimation
-    .to(screenBorder.value, {
-      opacity: 0.8,
+  vignettePulseAnimation
+    .to(vignette.value, {
+      opacity: 0.7,
       duration: 0.1,
       ease: 'power2.out',
     })
-    .to(screenBorder.value, {
+    .to(vignette.value, {
       opacity: 0.2,
       duration: 0.3,
       ease: 'power2.out',
     })
-    .to(screenBorder.value, {
-      opacity: 0.6,
+    .to(vignette.value, {
+      opacity: 0.5,
       duration: 0.08,
       ease: 'power2.out',
     })
-    .to(screenBorder.value, {
+    .to(vignette.value, {
       opacity: 0.2,
       duration: Math.max(0.1, beatInterval - 0.48),
       ease: 'power2.out',
@@ -133,9 +133,9 @@ const startBorderPulse = (): void => {
 };
 
 const stopAnimations = (): void => {
-  if (borderPulseAnimation) {
-    borderPulseAnimation.kill();
-    borderPulseAnimation = null;
+  if (vignettePulseAnimation) {
+    vignettePulseAnimation.kill();
+    vignettePulseAnimation = null;
   }
 };
 
@@ -148,7 +148,7 @@ const activeHeartRate = computed(() =>
 watch(activeHeartRate, async rate => {
   if (rate) {
     await nextTick();
-    startBorderPulse();
+    startVignettePulse();
   } else {
     stopAnimations();
   }
@@ -156,7 +156,7 @@ watch(activeHeartRate, async rate => {
 
 onMounted(() => {
   if (heartEnabled.value && heartRate.value && !connectionLost.value) {
-    startBorderPulse();
+    startVignettePulse();
   }
 });
 
@@ -170,17 +170,20 @@ onUnmounted(() => {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 10;
+  /* No z-index: stays in DOM order, so the vignette sits over the video and under the widgets layer */
 }
 
-/* Pulsing screen border */
-.screen-border {
+/* Edge vignette: transparent centre fading to the zone color (currentColor) at the frame edges */
+.vignette {
   position: absolute;
   inset: 0;
-  border-width: 4px;
-  border-style: solid;
-  opacity: 0.3;
-  transition: border-color 0.3s ease;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 55%,
+    color-mix(in srgb, currentColor 55%, transparent) 100%
+  );
+  opacity: 0.2;
+  transition: color 0.3s ease;
 }
 
 /* REFINED: BPM Display - positioned via cornerStyle, anchored to the configured corner */
@@ -258,7 +261,7 @@ onUnmounted(() => {
   }
 }
 
-/* REFINED: removed blood drops - border pulsing is sufficient */
+/* REFINED: removed blood drops - the vignette pulse is sufficient */
 
 /* Heart rate zone color schemes */
 .zone-resting {
@@ -310,24 +313,6 @@ onUnmounted(() => {
   }
   to {
     filter: brightness(1.3);
-  }
-}
-
-/* Subtle screen tint for very high heart rates */
-.heart-rate-overlay.zone-maximum::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at center, transparent 70%, rgba(153, 27, 27, 0.1) 100%);
-  animation: screenTint 2s ease-in-out infinite alternate;
-}
-
-@keyframes screenTint {
-  from {
-    opacity: 0.3;
-  }
-  to {
-    opacity: 0.6;
   }
 }
 </style>
