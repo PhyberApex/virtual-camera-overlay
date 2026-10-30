@@ -107,6 +107,57 @@ describe('useOverlayConfig', () => {
       warnSpy.mockRestore();
     });
 
+    describe('beRightBack', () => {
+      const load = async (beRightBack?: unknown) => {
+        vi.stubGlobal('fetch', mockFetchResolving({ ...validConfig, beRightBack }));
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const { useOverlayConfig } = await import('../../composables/useOverlayConfig');
+        const result = useOverlayConfig();
+        await vi.waitFor(() => expect(result.entities.value).toEqual(validEntities));
+        return { ...result, warnSpy };
+      };
+
+      it("uses today's copy and images silently when absent", async () => {
+        const { beRightBack, warnSpy } = await load();
+        expect(beRightBack.value.title).toBe('Be Right Back');
+        expect(beRightBack.value.subtitle).toBe("I'll be back in a moment!");
+        expect(beRightBack.value.particles).toHaveLength(5);
+        expect(warnSpy).not.toHaveBeenCalled();
+        warnSpy.mockRestore();
+      });
+
+      it('uses configured title, subtitle and particles, including an empty list', async () => {
+        const { beRightBack, warnSpy } = await load({
+          title: 'BRB',
+          subtitle: 'Hi',
+          particles: [],
+        });
+        expect(beRightBack.value).toEqual({ title: 'BRB', subtitle: 'Hi', particles: [] });
+        expect(warnSpy).not.toHaveBeenCalled();
+        warnSpy.mockRestore();
+      });
+
+      it('warns once for each invalid field and falls back for that field only', async () => {
+        const { beRightBack, warnSpy } = await load({
+          title: 'BRB',
+          subtitle: 42,
+          particles: ['a.png', ''],
+        });
+        expect(beRightBack.value.title).toBe('BRB');
+        expect(beRightBack.value.subtitle).toBe("I'll be back in a moment!");
+        expect(beRightBack.value.particles).toHaveLength(5);
+        expect(warnSpy).toHaveBeenCalledTimes(2);
+        warnSpy.mockRestore();
+      });
+
+      it('warns once and uses defaults when the block is not an object', async () => {
+        const { beRightBack, warnSpy } = await load('nope');
+        expect(beRightBack.value.title).toBe('Be Right Back');
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+        warnSpy.mockRestore();
+      });
+    });
+
     it('falls back to the default heartRateLayout and warns once when heartRate fails shape validation', async () => {
       vi.stubGlobal(
         'fetch',

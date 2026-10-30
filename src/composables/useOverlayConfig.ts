@@ -24,6 +24,12 @@ export interface HeartRateLayout {
   offset: Vector2;
 }
 
+export interface BeRightBackConfig {
+  title: string;
+  subtitle: string;
+  particles: string[];
+}
+
 export interface OverlayEntities {
   steps: string;
   distance: string;
@@ -37,6 +43,7 @@ export interface OverlayEntities {
 interface OverlayConfig {
   maxHeartRate?: unknown;
   heartRate?: unknown;
+  beRightBack?: unknown;
   entities: OverlayEntities;
   widgets: OverlayWidgetConfig[];
 }
@@ -45,6 +52,18 @@ export const DEFAULT_MAX_HEART_RATE = 185;
 export const DEFAULT_HEART_RATE_LAYOUT: HeartRateLayout = {
   anchor: 'top-left',
   offset: { x: 20, y: 20 },
+};
+
+export const DEFAULT_BE_RIGHT_BACK: BeRightBackConfig = {
+  title: 'Be Right Back',
+  subtitle: "I'll be back in a moment!",
+  particles: [
+    'rain/janiswow.png',
+    'rain/janisreally.png',
+    'rain/janisapproved.png',
+    'rain/janiswhy.png',
+    'rain/mortyxmas.png',
+  ],
 };
 
 const ENTITY_KEYS: Array<keyof OverlayEntities> = [
@@ -62,6 +81,12 @@ const WIDGET_TYPES: WidgetType[] = ['steps', 'temperature', 'sensor'];
 
 const maxHeartRate: Ref<number> = ref(DEFAULT_MAX_HEART_RATE);
 const heartRateLayout: Ref<HeartRateLayout> = ref({ ...DEFAULT_HEART_RATE_LAYOUT });
+const defaultBeRightBack = (): BeRightBackConfig => ({
+  ...DEFAULT_BE_RIGHT_BACK,
+  particles: [...DEFAULT_BE_RIGHT_BACK.particles],
+});
+
+const beRightBack: Ref<BeRightBackConfig> = ref(defaultBeRightBack());
 const entities: Ref<OverlayEntities | null> = ref(null);
 const widgets: Ref<OverlayWidgetConfig[]> = ref([]);
 
@@ -95,6 +120,43 @@ const isValidAnchorOffset = (value: Record<string, unknown>): boolean =>
 
 const isValidHeartRateLayout = (value: unknown): value is HeartRateLayout =>
   isRecord(value) && isValidAnchorOffset(value);
+
+// Each field falls back on its own: absent is silent, invalid warns once and uses the default.
+const resolveBeRightBack = (value: unknown): BeRightBackConfig => {
+  const resolved = defaultBeRightBack();
+  if (value === undefined) return resolved;
+  if (!isRecord(value) || Array.isArray(value)) {
+    console.warn(
+      '[OverlayConfig] Invalid beRightBack config; using the default copy and images',
+      value
+    );
+    return resolved;
+  }
+  for (const key of ['title', 'subtitle'] as const) {
+    const field = value[key];
+    if (field === undefined) continue;
+    if (isNonEmptyString(field)) {
+      resolved[key] = field;
+    } else {
+      console.warn(
+        `[OverlayConfig] Invalid beRightBack.${key}; falling back to "${DEFAULT_BE_RIGHT_BACK[key]}"`,
+        field
+      );
+    }
+  }
+  const particles = value.particles;
+  if (particles !== undefined) {
+    if (Array.isArray(particles) && particles.every(isNonEmptyString)) {
+      resolved.particles = [...particles];
+    } else {
+      console.warn(
+        '[OverlayConfig] Invalid beRightBack.particles; falling back to the default images',
+        particles
+      );
+    }
+  }
+  return resolved;
+};
 
 const checkVector2 = (value: unknown, path: string): string | null => {
   if (!isRecord(value)) return `${path}: expected an object`;
@@ -222,6 +284,7 @@ const loadOverlayConfig = (): Promise<boolean> => {
           );
         }
       }
+      beRightBack.value = resolveBeRightBack(validConfig.beRightBack);
       configUnreachable.value = false;
       configLoaded.value = true;
       return true;
@@ -247,6 +310,7 @@ const loadOverlayConfig = (): Promise<boolean> => {
 export const useOverlayConfig = (): {
   maxHeartRate: Ref<number>;
   heartRateLayout: Ref<HeartRateLayout>;
+  beRightBack: Ref<BeRightBackConfig>;
   entities: Ref<OverlayEntities | null>;
   widgets: Ref<OverlayWidgetConfig[]>;
   configLoaded: Ref<boolean>;
@@ -257,6 +321,7 @@ export const useOverlayConfig = (): {
   return {
     maxHeartRate,
     heartRateLayout,
+    beRightBack,
     entities,
     widgets,
     configLoaded,

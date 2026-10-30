@@ -47,6 +47,7 @@ fixed and non-positionable).
   keeps today's 600×72 default. Non-`steps` widgets ignore the field if present.
 - `BeRightBack` is untouched by this change: still full-screen, still non-positionable, still no
   config of its own.
+  _Amended by ADR-0004: its content (not its position or background) is now configurable._
 
 ## Consequences
 

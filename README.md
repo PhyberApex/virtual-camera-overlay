@@ -178,6 +178,11 @@ layout is hard-coded in `src/`.
   `heartRate` is missing, `HeartRate` silently uses `top-left`, `{x: 20, y: 20}`; if it is present
   but fails validation, it uses the same default and one warning is logged to the console — unlike
   `entities`/`widgets`, an invalid `heartRate` doesn't take down the rest of the overlay.
+- `beRightBack` customises the Be Right Back screen's content: `title`, `subtitle` (non-empty
+  strings) and `particles` (an array of image paths, resolved relative to the page like `rain/`).
+  The 15 particles cycle through the list; an empty list shows none. Each field is optional:
+  absent silently keeps the built-in copy and images, an invalid one logs one warning and uses its
+  default. Position, the opaque full-screen background and the privacy role are not configurable.
 
 If the file is missing, isn't valid JSON, or is missing/mistypes a required `entities` or
 `widgets` field (including a malformed `compactSize`), the overlay renders nothing and logs one
