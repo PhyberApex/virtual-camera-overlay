@@ -168,7 +168,7 @@ layout is hard-coded in `src/`.
   default while compact mode is on; omit it to keep that default.
   Widget `id`s must be unique, `size`/`compactSize` need a positive `width` and `height`, and
   `temperature`/`sensor` widgets need a non-empty `props.entityId`. Violating any of these fails
-  validation: the error is logged to the console and the overlay renders nothing.
+  validation: a single console error names the first failing field (e.g. `widgets[0].size.height: expected a positive finite number`) and the overlay renders nothing.
 - `maxHeartRate` configures the heart-rate zone thresholds (see `DESIGN.md`). It must be a positive
   finite number; if present but invalid, a warning is logged and it falls back to 185.
 - `heartRate` controls where the BPM display and its pulse-wave animation render — an `anchor` and
