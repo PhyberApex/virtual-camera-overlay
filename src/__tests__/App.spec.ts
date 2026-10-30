@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { shallowMount, flushPromises, enableAutoUnmount } from '@vue/test-utils';
 import App from '../App.vue';
+import { STAGE_SIZE } from '../utils/widgetLayout';
 import WidgetSteps from '../components/WidgetSteps.vue';
 import { nextTick, ref } from 'vue';
 import type { Widget } from '../composables/useWidgetManager';
@@ -113,8 +114,8 @@ describe('App', () => {
 
     expect(widget?.size).toEqual({ width: 240, height: 190 });
     expect(widget?.position).toEqual({
-      x: window.innerWidth - 240 - 30,
-      y: window.innerHeight - 190 - 30,
+      x: STAGE_SIZE.width - 240 - 30,
+      y: STAGE_SIZE.height - 190 - 30,
     });
   });
 
@@ -127,8 +128,8 @@ describe('App', () => {
     const widget = widgets.value.find(w => w.id === 'steps-display');
     expect(widget?.size.height).toBeLessThanOrEqual(72);
     expect(widget?.position).toEqual({
-      x: window.innerWidth - widget!.size.width - 30,
-      y: window.innerHeight - widget!.size.height - 30,
+      x: STAGE_SIZE.width - widget!.size.width - 30,
+      y: STAGE_SIZE.height - widget!.size.height - 30,
     });
   });
 
@@ -187,31 +188,23 @@ describe('App', () => {
     expect(wrapper.findComponent(WidgetSteps).props('shouldShow')).toBe(false);
   });
 
-  it('keeps the 30px margin after a window resize, in both modes', async () => {
-    shallowMount(App);
+  it('keeps widget positions in stage units after a window resize and only rescales the stage', async () => {
+    const wrapper = shallowMount(App);
     await flushPromises();
+    const before = widgets.value.find(w => w.id === 'steps-display')!.position;
 
-    window.innerWidth = 1280;
+    window.innerWidth = 960;
     window.innerHeight = 900;
     window.dispatchEvent(new Event('resize'));
-
-    let widget = widgets.value.find(w => w.id === 'steps-display');
-    expect(widget?.position).toEqual({
-      x: 1280 - widget!.size.width - 30,
-      y: 900 - widget!.size.height - 30,
-    });
-
-    compactEnabled.value = true;
     await nextTick();
-    window.innerWidth = 1920;
-    window.innerHeight = 1080;
-    window.dispatchEvent(new Event('resize'));
 
-    widget = widgets.value.find(w => w.id === 'steps-display');
-    expect(widget?.position).toEqual({
-      x: 1920 - widget!.size.width - 30,
-      y: 1080 - widget!.size.height - 30,
-    });
+    expect(widgets.value.find(w => w.id === 'steps-display')!.position).toEqual(before);
+    const style = wrapper.find('.stage').attributes('style');
+    expect(style).toContain('width: 1920px');
+    expect(style).toContain('height: 1080px');
+    expect(style).toContain('scale(0.5)');
+    expect(style).toContain('left: 0px');
+    expect(style).toContain('top: 180px');
   });
 
   it('positions a widget anchored top-left using its configured offset directly', async () => {

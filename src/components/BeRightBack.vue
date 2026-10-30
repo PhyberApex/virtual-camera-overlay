@@ -74,7 +74,7 @@ const particles = computed<Particle[]>(() => {
 
 <style scoped>
 .brb-overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
@@ -119,7 +119,7 @@ const particles = computed<Particle[]>(() => {
   }
   100% {
     opacity: 0;
-    transform: translateY(-120vh) translateX(calc((var(--random, 0.5) - 0.5) * 200px)) scale(1)
+    transform: translateY(-1300px) translateX(calc((var(--random, 0.5) - 0.5) * 200px)) scale(1)
       rotate(360deg);
   }
 }
@@ -132,7 +132,7 @@ const particles = computed<Particle[]>(() => {
 }
 
 .brb-title {
-  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-size: 4rem;
   font-weight: 700;
   color: var(--color-vital-green); /* vital green accent */
   margin-bottom: 1rem;
@@ -141,7 +141,7 @@ const particles = computed<Particle[]>(() => {
 }
 
 .brb-subtitle {
-  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  font-size: 1.75rem;
   color: var(--color-text-secondary);
   max-width: 28rem;
   margin: 0 auto;

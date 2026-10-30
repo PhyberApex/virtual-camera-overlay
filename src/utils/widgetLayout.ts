@@ -10,14 +10,36 @@ export interface Size2 {
   height: number;
 }
 
+/** The overlay's coordinate system: every widget position and size is in stage units. */
+export const STAGE_SIZE: Size2 = { width: 1920, height: 1080 };
+
+export interface StageTransform {
+  scale: number;
+  left: number;
+  top: number;
+}
+
+/** Uniformly scales the stage to fit the window and centers it, leaving letterbox bars. */
+export const computeStageTransform = (
+  windowSize: Size2,
+  stage: Size2 = STAGE_SIZE
+): StageTransform => {
+  const scale = Math.min(windowSize.width / stage.width, windowSize.height / stage.height);
+  return {
+    scale,
+    left: (windowSize.width - stage.width * scale) / 2,
+    top: (windowSize.height - stage.height * scale) / 2,
+  };
+};
+
 export const computeWidgetPosition = (
   anchor: WidgetAnchor,
   offset: Vector2,
   size: Size2,
-  viewport: Size2
+  stage: Size2
 ): Vector2 => ({
-  x: anchor.endsWith('right') ? viewport.width - size.width - offset.x : offset.x,
-  y: anchor.startsWith('bottom') ? viewport.height - size.height - offset.y : offset.y,
+  x: anchor.endsWith('right') ? stage.width - size.width - offset.x : offset.x,
+  y: anchor.startsWith('bottom') ? stage.height - size.height - offset.y : offset.y,
 });
 
 export type CornerStyle = Partial<Record<'top' | 'bottom' | 'left' | 'right', string>>;
