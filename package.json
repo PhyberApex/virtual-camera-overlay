@@ -19,6 +19,7 @@
     "prepare": "husky install"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "^1.2.0",
     "@vueuse/core": "^15.0.0",
     "gsap": "^3.12.7",
     "vue": "^3.5.13"

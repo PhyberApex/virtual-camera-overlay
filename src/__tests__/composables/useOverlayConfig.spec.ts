@@ -119,7 +119,10 @@ describe('useOverlayConfig', () => {
 
       it('is not mirrored, silently, when the section is absent', async () => {
         const { camera, warnSpy } = await load();
-        expect(camera.value).toEqual({ mirror: false });
+        expect(camera.value).toEqual({
+          mirror: false,
+          framing: { maxZoom: 1.5, deadZone: 0.05, easeMs: 500, targetY: 1 / 3 },
+        });
         expect(warnSpy).not.toHaveBeenCalled();
       });
 
@@ -138,6 +141,40 @@ describe('useOverlayConfig', () => {
       it('warns once and falls back for a non-object section', async () => {
         const { camera, warnSpy } = await load('mirror');
         expect(camera.value.mirror).toBe(false);
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+      });
+
+      it('takes valid framing fields and defaults the rest silently', async () => {
+        const { camera, warnSpy } = await load({ framing: { maxZoom: 2, easeMs: 800 } });
+        expect(camera.value.framing).toEqual({
+          maxZoom: 2,
+          deadZone: 0.05,
+          easeMs: 800,
+          targetY: 1 / 3,
+        });
+        expect(warnSpy).not.toHaveBeenCalled();
+      });
+
+      it.each([
+        ['maxZoom', 0.5],
+        ['maxZoom', 'big'],
+        ['deadZone', -1],
+        ['easeMs', 0],
+        ['targetY', 2],
+      ])('warns once and defaults framing.%s = %j', async (key, bad) => {
+        const { camera, warnSpy } = await load({ framing: { [key]: bad } });
+        expect(camera.value.framing).toEqual({
+          maxZoom: 1.5,
+          deadZone: 0.05,
+          easeMs: 500,
+          targetY: 1 / 3,
+        });
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+      });
+
+      it('warns once and defaults a non-object framing section', async () => {
+        const { camera, warnSpy } = await load({ framing: 'tight' });
+        expect(camera.value.framing.maxZoom).toBe(1.5);
         expect(warnSpy).toHaveBeenCalledTimes(1);
       });
     });

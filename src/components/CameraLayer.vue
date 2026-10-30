@@ -1,17 +1,18 @@
 <template>
   <div class="camera-layer">
-    <video
-      v-if="showVideo"
-      ref="videoEl"
-      class="camera-video"
-      :class="{ mirrored: mirror }"
-      :src="source === 'sample' ? SAMPLE_VIDEO_URL : undefined"
-      autoplay
-      muted
-      playsinline
-      :loop="source === 'sample'"
-      @error="onVideoError"
-    />
+    <div v-if="showVideo" ref="frameEl" class="camera-frame">
+      <video
+        ref="videoEl"
+        class="camera-video"
+        :class="{ mirrored: mirror }"
+        :src="source === 'sample' ? SAMPLE_VIDEO_URL : undefined"
+        autoplay
+        muted
+        playsinline
+        :loop="source === 'sample'"
+        @error="onVideoError"
+      />
+    </div>
     <div v-if="showPlaceholder" class="camera-placeholder" role="status">
       {{ message }}
     </div>
@@ -19,13 +20,26 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import gsap from 'gsap';
+import { computed, onBeforeUnmount, ref, toRef, watch } from 'vue';
 import { SAMPLE_VIDEO_URL, useCamera } from '../composables/useCamera';
+import { useFaceTracking } from '../composables/useFaceTracking';
+import {
+  computeFraming,
+  DEFAULT_FRAMING_CONFIG,
+  IDENTITY_FRAMING,
+  type Framing,
+  type FramingConfig,
+} from '../utils/framing';
+import { STAGE_SIZE } from '../utils/widgetLayout';
 
-defineProps<{ mirror: boolean }>();
+const props = withDefaults(defineProps<{ mirror: boolean; framing?: FramingConfig }>(), {
+  framing: () => ({ ...DEFAULT_FRAMING_CONFIG }),
+});
 
 const { stream, status, source, setSampleMissing } = useCamera();
 const videoEl = ref<HTMLVideoElement | null>(null);
+const frameEl = ref<HTMLDivElement | null>(null);
 
 const showVideo = computed(() => source.value === 'sample' || status.value === 'live');
 const showPlaceholder = computed(
@@ -40,6 +54,48 @@ const message = computed(() => {
     default:
       return 'No camera found';
   }
+});
+
+// Face tracking is pointless while the placeholder covers the stage.
+const { faceBox, tracked } = useFaceTracking({
+  video: videoEl,
+  enabled: computed(() => showVideo.value && !showPlaceholder.value),
+  mirror: toRef(props, 'mirror'),
+});
+
+let target: Framing = IDENTITY_FRAMING;
+
+const easeTo = (next: Framing, immediate = false): void => {
+  target = next;
+  if (!frameEl.value) return;
+  const vars = { x: next.x, y: next.y, scale: next.scale };
+  if (immediate) {
+    gsap.killTweensOf(frameEl.value);
+    gsap.set(frameEl.value, vars);
+    return;
+  }
+  gsap.to(frameEl.value, {
+    ...vars,
+    duration: props.framing.easeMs / 1000,
+    ease: 'power2.out',
+    overwrite: true,
+  });
+};
+
+watch([faceBox, tracked], () => {
+  if (tracked.value && faceBox.value) {
+    const next = computeFraming(faceBox.value, STAGE_SIZE, props.framing, target);
+    if (next !== target) easeTo(next);
+  } else if (target !== IDENTITY_FRAMING) {
+    easeTo(IDENTITY_FRAMING);
+  }
+});
+
+// The frame element is recreated with the video, so start it from the full frame.
+watch(frameEl, () => easeTo(IDENTITY_FRAMING, true));
+
+onBeforeUnmount(() => {
+  if (frameEl.value) gsap.killTweensOf(frameEl.value);
 });
 
 watch(
@@ -62,6 +118,11 @@ const onVideoError = (): void => {
   position: absolute;
   inset: 0;
   background-color: #111111;
+}
+
+.camera-frame {
+  position: absolute;
+  inset: 0;
 }
 
 .camera-video {

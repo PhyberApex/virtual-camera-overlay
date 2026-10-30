@@ -1,4 +1,5 @@
 import { ref, type Ref } from 'vue';
+import { DEFAULT_FRAMING_CONFIG, type FramingConfig } from '../utils/framing';
 import type { WidgetAnchor, Vector2, Size2 } from '../utils/widgetLayout';
 
 export type WidgetType = 'steps' | 'temperature' | 'sensor';
@@ -32,6 +33,7 @@ export interface BeRightBackConfig {
 
 export interface CameraConfig {
   mirror: boolean;
+  framing: FramingConfig;
 }
 
 export interface OverlayEntities {
@@ -71,7 +73,10 @@ export const DEFAULT_BE_RIGHT_BACK: BeRightBackConfig = {
   ],
 };
 
-export const DEFAULT_CAMERA: CameraConfig = { mirror: false };
+export const DEFAULT_CAMERA: CameraConfig = {
+  mirror: false,
+  framing: { ...DEFAULT_FRAMING_CONFIG },
+};
 
 const ENTITY_KEYS: Array<keyof OverlayEntities> = [
   'steps',
@@ -94,7 +99,11 @@ const defaultBeRightBack = (): BeRightBackConfig => ({
 });
 
 const beRightBack: Ref<BeRightBackConfig> = ref(defaultBeRightBack());
-const camera: Ref<CameraConfig> = ref({ ...DEFAULT_CAMERA });
+const defaultCamera = (): CameraConfig => ({
+  ...DEFAULT_CAMERA,
+  framing: { ...DEFAULT_CAMERA.framing },
+});
+const camera: Ref<CameraConfig> = ref(defaultCamera());
 const entities: Ref<OverlayEntities | null> = ref(null);
 const widgets: Ref<OverlayWidgetConfig[]> = ref([]);
 
@@ -166,8 +175,39 @@ const resolveBeRightBack = (value: unknown): BeRightBackConfig => {
   return resolved;
 };
 
+// maxZoom is at least 1, deadZone and targetY are fractions of the stage, easeMs is positive.
+const FRAMING_RULES: Record<keyof FramingConfig, { valid: (v: number) => boolean; rule: string }> =
+  {
+    maxZoom: { valid: v => v >= 1, rule: 'a number of at least 1' },
+    deadZone: { valid: v => v >= 0 && v < 1, rule: 'a number from 0 up to 1' },
+    easeMs: { valid: v => v > 0, rule: 'a positive number' },
+    targetY: { valid: v => v >= 0 && v <= 1, rule: 'a number from 0 to 1' },
+  };
+
+const resolveFraming = (value: unknown): FramingConfig => {
+  const resolved = { ...DEFAULT_FRAMING_CONFIG };
+  if (value === undefined) return resolved;
+  if (!isRecord(value) || Array.isArray(value)) {
+    console.warn('[OverlayConfig] Invalid camera.framing config; using the defaults', value);
+    return resolved;
+  }
+  for (const key of Object.keys(FRAMING_RULES) as Array<keyof FramingConfig>) {
+    const field = value[key];
+    if (field === undefined) continue;
+    if (isFiniteNumber(field) && FRAMING_RULES[key].valid(field)) {
+      resolved[key] = field;
+    } else {
+      console.warn(
+        `[OverlayConfig] Invalid camera.framing.${key} (expected ${FRAMING_RULES[key].rule}); falling back to ${DEFAULT_FRAMING_CONFIG[key]}`,
+        field
+      );
+    }
+  }
+  return resolved;
+};
+
 const resolveCamera = (value: unknown): CameraConfig => {
-  const resolved = { ...DEFAULT_CAMERA };
+  const resolved = defaultCamera();
   if (value === undefined) return resolved;
   if (!isRecord(value) || Array.isArray(value)) {
     console.warn('[OverlayConfig] Invalid camera config; using the default (not mirrored)', value);
@@ -179,6 +219,7 @@ const resolveCamera = (value: unknown): CameraConfig => {
   } else if (mirror !== undefined) {
     console.warn('[OverlayConfig] Invalid camera.mirror; falling back to false', mirror);
   }
+  resolved.framing = resolveFraming(value.framing);
   return resolved;
 };
 
