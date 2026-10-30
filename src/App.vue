@@ -3,7 +3,7 @@
     <DevPanel />
 
     <div class="stage" :style="stageStyle">
-      <CameraLayer :mirror="camera.mirror" :framing="camera.framing" />
+      <CameraLayer :mirror="camera.mirror" :framing="camera.framing" :blurred="brbEnabled" />
       <BeRightBack />
       <HeartRate />
 
@@ -54,7 +54,7 @@ import { useWidgetManager, type Widget } from './composables/useWidgetManager';
 import { useOverlayConfig, type OverlayWidgetConfig } from './composables/useOverlayConfig';
 import { computeStageTransform, computeWidgetPosition, STAGE_SIZE } from './utils/widgetLayout';
 
-const { steps, compactEnabled, connectionLost } = useHomeAssistant();
+const { steps, compactEnabled, connectionLost, brbEnabled } = useHomeAssistant();
 const { widgets, addWidget, updateWidget } = useWidgetManager();
 const {
   widgets: widgetConfigs,

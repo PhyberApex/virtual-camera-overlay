@@ -29,6 +29,14 @@ vi.mock('../../composables/useFaceTracking', () => ({
 }));
 
 describe('CameraLayer', () => {
+  it('applies the blur class only when blurred', async () => {
+    status.value = 'live';
+    const w = mount(CameraLayer, { props: { mirror: false } });
+    expect(w.classes()).not.toContain('blurred');
+    await w.setProps({ blurred: true });
+    expect(w.classes()).toContain('blurred');
+  });
+
   it('shows an unmirrored video when live', () => {
     status.value = 'live';
     const w = mount(CameraLayer, { props: { mirror: false } });
