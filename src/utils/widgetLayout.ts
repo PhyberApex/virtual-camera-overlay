@@ -52,3 +52,20 @@ export const computeCornerStyle = (anchor: WidgetAnchor, offset: Vector2): Corne
   ...(anchor.startsWith('top') ? { top: `${offset.y}px` } : { bottom: `${offset.y}px` }),
   ...(anchor.endsWith('left') ? { left: `${offset.x}px` } : { right: `${offset.x}px` }),
 });
+
+/** Gap between the head and a face-anchored widget, in stage units. */
+export const FACE_ANCHOR_GAP = 24;
+
+/**
+ * Top-left position of a widget beside the head, vertically centred on the face (about ear
+ * height): to the right of the face, flipping to the left when it would leave the stage.
+ */
+export const computeFaceAnchoredPosition = (
+  face: { x: number; y: number; width: number; height: number },
+  stage: Size2,
+  size: Size2
+): Vector2 => {
+  const rightX = face.x + face.width + FACE_ANCHOR_GAP;
+  const x = rightX + size.width > stage.width ? face.x - FACE_ANCHOR_GAP - size.width : rightX;
+  return { x: Math.max(0, x), y: face.y + (face.height - size.height) / 2 };
+};

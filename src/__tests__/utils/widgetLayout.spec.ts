@@ -3,6 +3,7 @@ import {
   computeWidgetPosition,
   computeCornerStyle,
   computeStageTransform,
+  computeFaceAnchoredPosition,
 } from '../../utils/widgetLayout';
 
 describe('computeWidgetPosition', () => {
@@ -97,5 +98,34 @@ describe('computeStageTransform', () => {
       left: 800,
       top: 0,
     });
+  });
+});
+
+describe('computeFaceAnchoredPosition', () => {
+  const stage = { width: 1920, height: 1080 };
+  const size = { width: 100, height: 80 };
+
+  it('sits right of the face, centred on its height', () => {
+    expect(
+      computeFaceAnchoredPosition({ x: 800, y: 300, width: 200, height: 260 }, stage, size)
+    ).toEqual({
+      x: 1024,
+      y: 390,
+    });
+  });
+
+  it('flips to the left when the right side would leave the stage', () => {
+    expect(
+      computeFaceAnchoredPosition({ x: 1700, y: 300, width: 200, height: 260 }, stage, size)
+    ).toEqual({
+      x: 1576,
+      y: 390,
+    });
+  });
+
+  it('never leaves the left edge', () => {
+    expect(
+      computeFaceAnchoredPosition({ x: 10, y: 0, width: 1900, height: 100 }, stage, size).x
+    ).toBe(0);
   });
 });

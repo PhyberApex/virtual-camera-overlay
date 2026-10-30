@@ -74,6 +74,16 @@ const smoothBox = (previous: FaceBox | null, next: FaceBox): FaceBox => {
   };
 };
 
+// Shared so widgets outside the camera layer can follow the face without owning the detector.
+const sharedFaceBox: Ref<FaceBox | null> = ref(null);
+const sharedTracked = ref(false);
+
+/** The face currently tracked by the camera layer, in stage coordinates. */
+export const useTrackedFace = (): { faceBox: Ref<FaceBox | null>; tracked: Ref<boolean> } => ({
+  faceBox: sharedFaceBox,
+  tracked: sharedTracked,
+});
+
 export interface FaceTrackingOptions {
   video: Ref<HTMLVideoElement | null>;
   /** Detection only runs while this is true. */
@@ -95,8 +105,8 @@ export const useFaceTracking = ({
   stage = STAGE_SIZE,
   createDetector = loadFaceDetector,
 }: FaceTrackingOptions): { faceBox: Ref<FaceBox | null>; tracked: Ref<boolean> } => {
-  const faceBox: Ref<FaceBox | null> = ref(null);
-  const tracked = ref(false);
+  const faceBox = sharedFaceBox;
+  const tracked = sharedTracked;
 
   let detector: FaceDetector | null = null;
   let loading = false;
