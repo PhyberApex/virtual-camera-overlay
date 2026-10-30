@@ -52,8 +52,11 @@ fixed and non-positionable).
 
 - Pointing the BPM display at a different corner, or giving a different-height compact steps row
   more or less room, is now a config edit, matching the rest of ADR-0001's "one-file edit" model.
+- _Amended by ADR-0003: optional fields now share one warn-and-fallback style; the three-behaviour split below no longer holds._
 - `heartRate`'s soft-fail path is a second validation style alongside the all-or-nothing
   `entities`/`widgets` gate and `maxHeartRate`'s silent fallback — now three fallback behaviors in
   one file: all-or-nothing (fatal), warn-and-fallback (heartRate), and silent-fallback
   (maxHeartRate). Any future field should pick deliberately from these, not invent a fourth.
+  **Amended by ADR-0003:** optional fields now share one warn-and-fallback style, so this
+  three-behavior split no longer holds.
 - A configuration UI, schema library, or live hot-reload remains out of scope.

@@ -170,13 +170,14 @@ layout is hard-coded in `src/`.
   `temperature`/`sensor` widgets need a non-empty `props.entityId`. Violating any of these fails
   validation: a single console error names the first failing field (e.g. `widgets[0].size.height: expected a positive finite number`) and the overlay renders nothing.
 - `maxHeartRate` configures the heart-rate zone thresholds (see `DESIGN.md`). It must be a positive
-  finite number; if present but invalid, a warning is logged and it falls back to 185.
+  finite number; if absent it silently uses 185; if present but invalid (including 0 or negative), a warning is
+  logged and it falls back to 185.
 - `heartRate` controls where the BPM display and its pulse-wave animation render — an `anchor` and
   `offset`, same shape as a widget's. They always move together, anchored to the same corner. The
   full-screen pulsing screen border is unaffected and always stays inset to the viewport. If
-  `heartRate` is missing or fails validation, the overlay still renders, `HeartRate` falls back to
-  `top-left`, `{x: 20, y: 20}`, and one warning is logged to the console — unlike `entities`/
-  `widgets`, an invalid `heartRate` doesn't take down the rest of the overlay.
+  `heartRate` is missing, `HeartRate` silently uses `top-left`, `{x: 20, y: 20}`; if it is present
+  but fails validation, it uses the same default and one warning is logged to the console — unlike
+  `entities`/`widgets`, an invalid `heartRate` doesn't take down the rest of the overlay.
 
 If the file is missing, isn't valid JSON, or is missing/mistypes a required `entities` or
 `widgets` field (including a malformed `compactSize`), the overlay renders nothing and logs one

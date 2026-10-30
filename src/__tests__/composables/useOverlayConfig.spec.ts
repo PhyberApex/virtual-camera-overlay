@@ -80,7 +80,7 @@ describe('useOverlayConfig', () => {
       expect(maxHeartRate.value).toBe(185);
     });
 
-    it('defaults heartRateLayout to top-left, {x: 20, y: 20} when the field is absent', async () => {
+    it('defaults heartRateLayout to top-left, {x: 20, y: 20} silently when the field is absent', async () => {
       vi.stubGlobal('fetch', mockFetchResolving(validConfig));
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -89,8 +89,7 @@ describe('useOverlayConfig', () => {
 
       await vi.waitFor(() => expect(entities.value).toEqual(validEntities));
       expect(heartRateLayout.value).toEqual({ anchor: 'top-left', offset: { x: 20, y: 20 } });
-      expect(warnSpy).toHaveBeenCalledTimes(1);
-      expect(warnSpy.mock.calls[0]?.[0]).toContain('heartRate');
+      expect(warnSpy).not.toHaveBeenCalled();
       warnSpy.mockRestore();
     });
 
@@ -225,18 +224,21 @@ describe('useOverlayConfig', () => {
       await expect(ensureOverlayConfigLoaded()).resolves.toBe(true);
     });
 
-    it.each([0, -5])('falls back to 185 for maxHeartRate %d', async value => {
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      const { ensureOverlayConfigLoaded, maxHeartRate } = await load({
-        ...validConfig,
-        maxHeartRate: value,
-        heartRate: { anchor: 'top-left', offset: { x: 1, y: 1 } },
-      });
-      await expect(ensureOverlayConfigLoaded()).resolves.toBe(true);
-      expect(maxHeartRate.value).toBe(185);
-      expect(warn).toHaveBeenCalledTimes(1);
-      warn.mockRestore();
-    });
+    it.each([0, -5, Number.POSITIVE_INFINITY])(
+      'falls back to 185 for maxHeartRate %d',
+      async value => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const { ensureOverlayConfigLoaded, maxHeartRate } = await load({
+          ...validConfig,
+          maxHeartRate: value,
+          heartRate: { anchor: 'top-left', offset: { x: 1, y: 1 } },
+        });
+        await expect(ensureOverlayConfigLoaded()).resolves.toBe(true);
+        expect(maxHeartRate.value).toBe(185);
+        expect(warn).toHaveBeenCalledTimes(1);
+        warn.mockRestore();
+      }
+    );
   });
 
   describe('the validation error names the first failing path', () => {
